@@ -19,14 +19,14 @@ public class CarPoolingApplicationTests {
 
 	@Autowired
 	private CarPoolingController carPoolingController;
-	
+
 	private WebTestClient webClient;
 
 	@Before
 	public void before() {
 		webClient = WebTestClient.bindToController(carPoolingController).build();
 	}
-	
+
 	@Test
 	public void contextLoads() {
 	}

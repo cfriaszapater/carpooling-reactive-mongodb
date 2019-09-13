@@ -21,7 +21,8 @@ public class CarPoolingService {
 
 	public Flux<CarEntity> createCars(@Valid List<CarDTO> carDtos) {
 		// Clear all info and store cars
-		Flux<CarEntity> carEntities = Flux.fromStream(carDtos.stream().map(requestedCar -> new CarEntity(requestedCar.getId(), requestedCar.getSeats())));
+		Flux<CarEntity> carEntities = Flux
+				.fromStream(carDtos.stream().map(requestedCar -> new CarEntity(requestedCar.getId(), requestedCar.getSeats())));
 		return carsRepository.deleteAll().thenMany(carsRepository.saveAll(carEntities));
 	}
 
