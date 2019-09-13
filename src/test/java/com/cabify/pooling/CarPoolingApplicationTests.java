@@ -1,31 +1,24 @@
 package com.cabify.pooling;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
 
-import com.cabify.pooling.controller.CarPoolingController;
 import com.cabify.util.FileUtil;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@AutoConfigureWebTestClient
 public class CarPoolingApplicationTests {
 
 	@Autowired
-	private CarPoolingController carPoolingController;
-
 	private WebTestClient webClient;
-
-	@Before
-	public void before() {
-		webClient = WebTestClient.bindToController(carPoolingController).build();
-	}
 
 	@Test
 	public void contextLoads() {
