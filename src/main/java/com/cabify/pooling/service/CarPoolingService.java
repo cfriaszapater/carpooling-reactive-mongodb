@@ -1,17 +1,9 @@
 package com.cabify.pooling.service;
 
-import static org.springframework.data.domain.Sort.*;
-import static org.springframework.data.domain.Sort.Order.*;
-
 import java.util.List;
 
 import javax.validation.Valid;
 
-import org.springframework.data.mongodb.core.FindAndModifyOptions;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import com.cabify.pooling.dto.CarDTO;
@@ -30,8 +22,6 @@ public class CarPoolingService {
 
 	private final CarsRepository carsRepository;
 
-	private final ReactiveMongoTemplate mongoTemplate;
-
 	public Flux<CarEntity> createCars(@Valid List<CarDTO> carDtos) {
 		// Clear all info and store cars
 		Flux<CarEntity> carEntities = Flux
@@ -40,15 +30,7 @@ public class CarPoolingService {
 	}
 
 	public Mono<CarEntity> journey(@Valid GroupOfPeopleDTO groupDto) {
-		return assignToCarWithAvailableSeats(new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople()));
-	}
-
-	private Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group) {
-		Query query = Query.query(Criteria.where("seatsAvailable").gte(group.getPeople())).with(by(asc("seatsAvailable")));
-		Update update = new Update()
-				.inc("seatsAvailable", -group.getPeople())
-				.addToSet("groups").value(group);
-		return mongoTemplate.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+		return carsRepository.assignToCarWithAvailableSeats(new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople()));
 	}
 
 	public Mono<CarEntity> dropoff(Integer groupId) {

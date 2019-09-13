@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import com.cabify.pooling.dto.CarDTO;
@@ -26,14 +25,12 @@ public class CarPoolingServiceTest {
 
 	@Autowired
 	private CarsRepository carsRepository;
-	@Autowired
-	private ReactiveMongoTemplate mongoTemplate;
 
 	private CarPoolingService carPoolingService;
 
 	@Before
 	public void before() {
-		carPoolingService = new CarPoolingService(carsRepository, mongoTemplate);
+		carPoolingService = new CarPoolingService(carsRepository);
 	}
 
 	@Test
@@ -45,10 +42,11 @@ public class CarPoolingServiceTest {
 		Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
 
 		GroupOfPeopleEntity expectedGroup = new GroupOfPeopleEntity(requestedGroup.getId(), requestedGroup.getPeople());
-		StepVerifier.create(result).expectNextMatches(assignedCar -> expectedCar.getId() == assignedCar.getId()
-				&& expectedCar.getSeats() - requestedGroup.getPeople() == assignedCar.getSeatsAvailable()
-				&& assignedCar.getGroups().size() == 1
-				&& assignedCar.getGroups().contains(expectedGroup)).verifyComplete();
+		StepVerifier.create(result).expectNextMatches(
+				assignedCar -> expectedCar.getId() == assignedCar.getId() &&
+				expectedCar.getSeats() - requestedGroup.getPeople() == assignedCar.getSeatsAvailable() &&
+				assignedCar.getGroups().size() == 1 &&
+				assignedCar.getGroups().contains(expectedGroup)).verifyComplete();
 	}
 
 	@Test
@@ -88,5 +86,5 @@ public class CarPoolingServiceTest {
 //
 //		StepVerifier.create(result).expectNextMatches(droppedCar -> expectedCar.getSeats() == droppedCar.getSeatsAvailable()).verifyComplete();
 //	}
-//
+
 }
