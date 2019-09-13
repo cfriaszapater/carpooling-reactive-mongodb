@@ -49,4 +49,10 @@ public class CarPoolingApplicationTests {
 				.syncBody(FileUtil.loadFile("put-cars-46.ok.json")).exchange();
 	}
 
+	@Test
+	public void WhenPutCarsBadFormat_Then400BadRequest() throws Exception {
+		webClient.put().uri("http://localhost/cars").contentType(MediaType.APPLICATION_JSON)
+				.syncBody(FileUtil.loadFile("put-cars.bad-request.json")).exchange().expectStatus().isBadRequest();
+	}
+
 }
