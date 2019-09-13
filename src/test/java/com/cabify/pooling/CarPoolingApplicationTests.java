@@ -55,4 +55,16 @@ public class CarPoolingApplicationTests {
 				.syncBody(FileUtil.loadFile("put-cars.bad-request.json")).exchange().expectStatus().isBadRequest();
 	}
 
+	@Test
+	public void WhenPostJourney_ThenOk() throws Exception {
+		ResponseSpec result = postJourney4();
+
+		result.expectStatus().isOk();
+	}
+
+	private ResponseSpec postJourney4() throws Exception {
+		return webClient.post().uri("http://localhost/journey").contentType(MediaType.APPLICATION_JSON)
+				.syncBody(FileUtil.loadFile("post-journey-4.ok.json")).exchange();
+	}
+
 }

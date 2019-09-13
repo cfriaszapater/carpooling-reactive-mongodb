@@ -7,6 +7,7 @@ import javax.validation.Valid;
 import org.springframework.stereotype.Service;
 
 import com.cabify.pooling.dto.CarDTO;
+import com.cabify.pooling.dto.GroupOfPeopleDTO;
 import com.cabify.pooling.entity.CarEntity;
 import com.cabify.pooling.repository.CarsRepository;
 
@@ -24,6 +25,11 @@ public class CarPoolingService {
 		Flux<CarEntity> carEntities = Flux
 				.fromStream(carDtos.stream().map(requestedCar -> new CarEntity(requestedCar.getId(), requestedCar.getSeats())));
 		return carsRepository.deleteAll().thenMany(carsRepository.saveAll(carEntities));
+	}
+
+	public void journey(@Valid GroupOfPeopleDTO group) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
