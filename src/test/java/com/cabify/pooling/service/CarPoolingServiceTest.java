@@ -37,9 +37,24 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenCarsWithAvailableSeats_WhenJourney_ThenCarAsigned() throws GroupAlreadyExistsException {
+	public void GivenCarWithAvailableSeats_WhenJourney_ThenCarAsigned() throws GroupAlreadyExistsException {
 		CarDTO expectedCar = new CarDTO(1, 3);
 		carPoolingService.createCars(Arrays.asList(expectedCar)).blockLast();
+
+		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
+		Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
+
+		GroupOfPeopleEntity expectedGroup = new GroupOfPeopleEntity(requestedGroup.getId(), requestedGroup.getPeople());
+		StepVerifier.create(result).expectNextMatches(assignedCar -> expectedCar.getId() == assignedCar.getId()
+				&& expectedCar.getSeats() - requestedGroup.getPeople() == assignedCar.getSeatsAvailable()
+				&& assignedCar.getGroups().size() == 1
+				&& assignedCar.getGroups().contains(expectedGroup)).verifyComplete();
+	}
+
+	@Test
+	public void GivenCarsWithAvailableSeats_WhenJourney_ThenCarAsignedWithLeastNeededAvailableSeats() throws GroupAlreadyExistsException {
+		CarDTO expectedCar = new CarDTO(3, 3);
+		carPoolingService.createCars(Arrays.asList(new CarDTO(1, 1), new CarDTO(2, 6), expectedCar)).blockLast();
 
 		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
 		Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
@@ -62,4 +77,16 @@ public class CarPoolingServiceTest {
 		StepVerifier.create(result).verifyComplete();
 	}
 
+//	@Test
+//	TODO public void GivenCarAssigned_WhenDropoff_ThenSeatsFreed() throws GroupAlreadyExistsException {
+//		CarDTO expectedCar = new CarDTO(1, 3);
+//		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
+//		Mono<CarEntity> given = carPoolingService.createCars(Arrays.asList(expectedCar))
+//			.then(carPoolingService.journey(requestedGroup));
+//
+//		Mono<CarEntity> result = given.then(carPoolingService.dropoff(requestedGroup.getId()));
+//
+//		StepVerifier.create(result).expectNextMatches(droppedCar -> expectedCar.getSeats() == droppedCar.getSeatsAvailable()).verifyComplete();
+//	}
+//
 }

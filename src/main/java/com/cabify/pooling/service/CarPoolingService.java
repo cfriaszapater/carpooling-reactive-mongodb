@@ -1,5 +1,8 @@
 package com.cabify.pooling.service;
 
+import static org.springframework.data.domain.Sort.*;
+import static org.springframework.data.domain.Sort.Order.*;
+
 import java.util.List;
 
 import javax.validation.Valid;
@@ -41,11 +44,16 @@ public class CarPoolingService {
 	}
 
 	private Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group) {
-		Query query = Query.query(Criteria.where("id").is(1).and("seatsAvailable").gte(group.getPeople()));
+		Query query = Query.query(Criteria.where("seatsAvailable").gte(group.getPeople())).with(by(asc("seatsAvailable")));
 		Update update = new Update()
 				.inc("seatsAvailable", -group.getPeople())
 				.addToSet("groups").value(group);
 		return mongoTemplate.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+	}
+
+	public Mono<CarEntity> dropoff(Integer groupId) {
+		// TODO
+		return Mono.empty();
 	}
 
 }
