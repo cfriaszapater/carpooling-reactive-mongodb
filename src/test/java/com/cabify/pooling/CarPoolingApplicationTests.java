@@ -67,4 +67,10 @@ public class CarPoolingApplicationTests {
 				.syncBody(FileUtil.loadFile("post-journey-4.ok.json")).exchange();
 	}
 
+	@Test
+	public void WhenPostJourneyBadFormat_Then400BadRequest() throws Exception {
+		webClient.post().uri("http://localhost/journey").contentType(MediaType.APPLICATION_JSON)
+				.syncBody(FileUtil.loadFile("post-journey.bad-request.json")).exchange().expectStatus().isBadRequest();
+	}
+
 }
