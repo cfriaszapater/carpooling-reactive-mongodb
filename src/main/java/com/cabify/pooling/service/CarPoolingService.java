@@ -41,8 +41,7 @@ public class CarPoolingService {
 	}
 
 	private Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group) {
-		Query query = new Query()
-				.addCriteria(Criteria.where("id").is(1));
+		Query query = Query.query(Criteria.where("id").is(1).and("seatsAvailable").gte(group.getPeople()));
 		Update update = new Update()
 				.inc("seatsAvailable", -group.getPeople())
 				.addToSet("groups").value(group);

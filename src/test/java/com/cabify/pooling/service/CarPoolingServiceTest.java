@@ -51,4 +51,15 @@ public class CarPoolingServiceTest {
 				&& assignedCar.getGroups().contains(expectedGroup)).verifyComplete();
 	}
 
+	@Test
+	public void GivenCarsWithoutEnoughAvailableSeats_WhenJourney_ThenCarUnasigned() throws GroupAlreadyExistsException {
+		carPoolingService.createCars(Arrays.asList(new CarDTO(1, 3)))
+			.then(carPoolingService.journey(new GroupOfPeopleDTO(1, 2))).block();
+
+		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(2, 2);
+		Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
+
+		StepVerifier.create(result).verifyComplete();
+	}
+
 }
