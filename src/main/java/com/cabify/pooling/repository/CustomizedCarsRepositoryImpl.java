@@ -14,6 +14,7 @@ import com.cabify.pooling.entity.GroupOfPeopleEntity;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
@@ -29,5 +30,19 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 				.inc(SEATS_AVAILABLE, -group.getPeople())
 				.addToSet("groups").value(group);
 		return mongoOperations.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+	}
+
+	@Override
+	public Mono<CarEntity> removeGroupFromCarAndFreeSeats(Integer groupId) {
+		Query query = Query.query(Criteria.where("groups.id").is(groupId));
+		Mono<GroupOfPeopleEntity> groupToRemove = mongoOperations.findOne(query, CarEntity.class)
+				.map(car -> car.getGroups())
+				.flatMapMany(Flux::fromIterable)
+				.filter(group -> group.getId().equals(groupId)).next();
+
+		return groupToRemove.flatMap(group -> {
+			Update update = new Update().inc(SEATS_AVAILABLE, group.getPeople()).addToSet("groups").value(group);
+			return mongoOperations.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+		});
 	}
 }

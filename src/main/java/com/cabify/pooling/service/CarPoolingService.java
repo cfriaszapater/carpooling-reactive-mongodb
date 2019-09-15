@@ -34,8 +34,7 @@ public class CarPoolingService {
 	}
 
 	public Mono<CarEntity> dropoff(Integer groupId) {
-		// TODO
-		return Mono.empty();
+		return carsRepository.removeGroupFromCarAndFreeSeats(groupId);
 	}
 
 }

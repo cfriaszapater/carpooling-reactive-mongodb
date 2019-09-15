@@ -75,16 +75,17 @@ public class CarPoolingServiceTest {
 		StepVerifier.create(result).verifyComplete();
 	}
 
-//	@Test
-//	TODO public void GivenCarAssigned_WhenDropoff_ThenSeatsFreed() throws GroupAlreadyExistsException {
-//		CarDTO expectedCar = new CarDTO(1, 3);
-//		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
-//		Mono<CarEntity> given = carPoolingService.createCars(Arrays.asList(expectedCar))
-//			.then(carPoolingService.journey(requestedGroup));
-//
-//		Mono<CarEntity> result = given.then(carPoolingService.dropoff(requestedGroup.getId()));
-//
-//		StepVerifier.create(result).expectNextMatches(droppedCar -> expectedCar.getSeats() == droppedCar.getSeatsAvailable()).verifyComplete();
-//	}
+	@Test
+	public void GivenCarAssigned_WhenDropoff_ThenSeatsFreed() throws GroupAlreadyExistsException {
+		CarDTO expectedCar = new CarDTO(1, 3);
+		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
+		Mono<CarEntity> given = carPoolingService.createCars(Arrays.asList(expectedCar))
+			.then(carPoolingService.journey(requestedGroup));
+
+		Mono<CarEntity> result = given.then(carPoolingService.dropoff(requestedGroup.getId()));
+
+		StepVerifier.create(result).expectNextMatches(droppedCar -> expectedCar.getSeats() == droppedCar.getSeatsAvailable())
+				.verifyComplete();
+	}
 
 }
