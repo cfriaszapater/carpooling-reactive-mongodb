@@ -114,4 +114,15 @@ public class CarPoolingServiceTest {
 		StepVerifier.create(result).verifyComplete();
 	}
 
+	@Test
+	public void GivenGroupNotAssigned_WhenDropoff_ThenEmptyResult() throws GroupAlreadyExistsException {
+		GroupOfPeopleDTO group = new GroupOfPeopleDTO(2, 6);
+		Mono<CarEntity> given = carPoolingService.createCars(Arrays.asList(new CarDTO(1, 3)))
+				.then(carPoolingService.journey(group));
+
+		Mono<CarEntity> result = given.then(carPoolingService.dropoff(group.getId()));
+
+		StepVerifier.create(result).verifyComplete();
+	}
+
 }
