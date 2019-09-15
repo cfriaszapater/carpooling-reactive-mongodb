@@ -16,6 +16,7 @@ import com.cabify.pooling.entity.GroupOfPeopleEntity;
 import com.cabify.pooling.exception.GroupAlreadyExistsException;
 import com.cabify.pooling.repository.CarsRepository;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -123,6 +124,21 @@ public class CarPoolingServiceTest {
 		Mono<CarEntity> result = given.then(carPoolingService.dropoff(group.getId()));
 
 		StepVerifier.create(result).verifyComplete();
+	}
+
+	@Test
+	public void GivenCarsAndJourneys_WhenPutCars_ThenNewCars_AndNoJourneys() throws Exception {
+		int givenGroupId = 42;
+		Mono<CarEntity> givenGroup = carPoolingService.createCars(Arrays.asList(new CarDTO(1, 3), new CarDTO(2, 5)))
+				.then(carPoolingService.journey(new GroupOfPeopleDTO(givenGroupId, 2)));
+
+		int expectedCarId = 13;
+		Flux<CarEntity> result = givenGroup
+				.thenMany(carPoolingService.createCars(Arrays.asList(new CarDTO(expectedCarId, 4), new CarDTO(14, 5), new CarDTO(15, 6))));
+
+		result.blockLast();
+		StepVerifier.create(carPoolingService.findGroup(givenGroupId)).verifyComplete();
+		StepVerifier.create(carPoolingService.journey(new GroupOfPeopleDTO(7, 3))).expectNextMatches(car -> car.getId() == expectedCarId);
 	}
 
 }
