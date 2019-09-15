@@ -37,4 +37,8 @@ public class CarPoolingService {
 		return carsRepository.removeGroupFromCarAndFreeSeats(groupId);
 	}
 
+	public Mono<GroupOfPeopleEntity> findGroup(Integer groupId) {
+		return carsRepository.findGroupById(groupId);
+	}
+
 }

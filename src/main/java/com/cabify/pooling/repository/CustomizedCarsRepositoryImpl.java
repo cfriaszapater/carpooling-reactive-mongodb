@@ -24,6 +24,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 	
 	private final @NonNull ReactiveMongoOperations mongoOperations;
 	
+	@Override
 	public Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group) {
 		Query query = Query.query(Criteria.where(SEATS_AVAILABLE).gte(group.getPeople())).with(by(asc(SEATS_AVAILABLE)));
 		Update update = new Update()
@@ -34,15 +35,23 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	@Override
 	public Mono<CarEntity> removeGroupFromCarAndFreeSeats(Integer groupId) {
-		Query query = Query.query(Criteria.where("groups.id").is(groupId));
-		Mono<GroupOfPeopleEntity> groupToRemove = mongoOperations.findOne(query, CarEntity.class)
+		Mono<GroupOfPeopleEntity> groupToRemove = findGroupById(groupId);
+
+		return groupToRemove.flatMap(group -> {
+			Update update = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
+			return mongoOperations.findAndModify(queryGroupById(groupId), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+		});
+	}
+
+	@Override
+	public Mono<GroupOfPeopleEntity> findGroupById(Integer groupId) {
+		return mongoOperations.findOne(queryGroupById(groupId), CarEntity.class)
 				.map(car -> car.getGroups())
 				.flatMapMany(Flux::fromIterable)
 				.filter(group -> group.getId().equals(groupId)).next();
+	}
 
-		return groupToRemove.flatMap(group -> {
-			Update update = new Update().inc(SEATS_AVAILABLE, group.getPeople()).addToSet("groups").value(group);
-			return mongoOperations.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
-		});
+	private Query queryGroupById(Integer groupId) {
+		return Query.query(Criteria.where("groups.id").is(groupId));
 	}
 }
