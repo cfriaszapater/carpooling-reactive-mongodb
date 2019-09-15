@@ -89,6 +89,19 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
+	public void GivenGroupAssigned_WhenLocate_ThenGroupFound() throws Exception {
+		CarDTO expectedCar = new CarDTO(1, 3);
+		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
+		Mono<CarEntity> given = carPoolingService.createCars(Arrays.asList(expectedCar))
+			.then(carPoolingService.journey(requestedGroup));
+
+		Mono<GroupOfPeopleEntity> result = given.then(carPoolingService.findGroup(requestedGroup.getId()));
+
+		GroupOfPeopleEntity expectedGroup = new GroupOfPeopleEntity(requestedGroup.getId(), requestedGroup.getPeople());
+		StepVerifier.create(result).expectNext(expectedGroup);
+	}
+
+	@Test
 	public void GivenGroupAssigned_AndDroppedoff_WhenLocate_ThenGroupNotFound() throws Exception {
 		CarDTO expectedCar = new CarDTO(1, 3);
 		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
