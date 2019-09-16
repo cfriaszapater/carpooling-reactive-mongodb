@@ -50,7 +50,7 @@ public class CarPoolingController {
 		Integer id = group.getID();
 		
 		Mono<ResponseEntity<Void>> findAndRemove = carPoolingService.findWaitingGroup(id)
-				.map(g -> carPoolingService.removeWaitingGroup(id))
+				.doOnNext(g -> carPoolingService.removeWaitingGroup(id))
 				.map(v -> new ResponseEntity<Void>(HttpStatus.NO_CONTENT))
 				.defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
 		
