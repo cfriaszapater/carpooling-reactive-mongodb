@@ -46,16 +46,16 @@ public class CarPoolingController {
 	}
 
 	@PostMapping(path = "/dropoff", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-	public Mono<ResponseEntity<Object>> postDropoff(@Valid GroupOfPeopleForm group) {
+	public Mono<ResponseEntity<Void>> postDropoff(@Valid GroupOfPeopleForm group) {
 		Integer id = group.getID();
 		
-		Mono<ResponseEntity<Object>> findAndRemove = carPoolingService.findWaitingGroup(id)
+		Mono<ResponseEntity<Void>> findAndRemove = carPoolingService.findWaitingGroup(id)
 				.map(g -> carPoolingService.removeWaitingGroup(id))
-				.map(v -> ResponseEntity.noContent().build())
-				.defaultIfEmpty(ResponseEntity.notFound().build());
+				.map(v -> new ResponseEntity<Void>(HttpStatus.NO_CONTENT))
+				.defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
 		
 		return carPoolingService.dropoff(id)
-				.map(car -> ResponseEntity.ok().build())
+				.map(car -> new ResponseEntity<Void>(HttpStatus.OK))
 				.switchIfEmpty(findAndRemove);
 	}
 
