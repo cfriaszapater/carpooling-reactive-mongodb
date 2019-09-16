@@ -11,4 +11,6 @@ public interface CustomizedCarsRepository {
 	Mono<CarEntity> removeGroupFromCarAndFreeSeats(Integer groupId);
 
 	Mono<GroupOfPeopleEntity> findGroupById(Integer groupId);
+
+	Mono<CarEntity> locateCarOfGroup(Integer groupId);
 }

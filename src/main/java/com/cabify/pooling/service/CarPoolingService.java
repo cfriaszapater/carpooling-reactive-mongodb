@@ -41,4 +41,8 @@ public class CarPoolingService {
 		return carsRepository.findGroupById(groupId);
 	}
 
+	public Mono<CarEntity> locateCarOfGroup(int groupId) {
+		return carsRepository.locateCarOfGroup(groupId);
+	}
+
 }

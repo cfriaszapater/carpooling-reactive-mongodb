@@ -39,19 +39,24 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 		return groupToRemove.flatMap(group -> {
 			Update update = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
-			return mongoOperations.findAndModify(queryGroupById(groupId), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+			return mongoOperations.findAndModify(queryByGroupId(groupId), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
 		});
 	}
 
 	@Override
 	public Mono<GroupOfPeopleEntity> findGroupById(Integer groupId) {
-		return mongoOperations.findOne(queryGroupById(groupId), CarEntity.class)
+		return locateCarOfGroup(groupId)
 				.map(car -> car.getGroups())
 				.flatMapMany(Flux::fromIterable)
 				.filter(group -> group.getId().equals(groupId)).next();
 	}
 
-	private Query queryGroupById(Integer groupId) {
+	@Override
+	public Mono<CarEntity> locateCarOfGroup(Integer groupId) {
+		return mongoOperations.findOne(queryByGroupId(groupId), CarEntity.class);
+	}
+
+	private Query queryByGroupId(Integer groupId) {
 		return Query.query(Criteria.where("groups.id").is(groupId));
 	}
 }

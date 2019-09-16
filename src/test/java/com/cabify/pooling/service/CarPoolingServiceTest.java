@@ -1,6 +1,7 @@
 package com.cabify.pooling.service;
 
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -99,7 +100,7 @@ public class CarPoolingServiceTest {
 		Mono<GroupOfPeopleEntity> result = given.then(carPoolingService.findGroup(requestedGroup.getId()));
 
 		GroupOfPeopleEntity expectedGroup = new GroupOfPeopleEntity(requestedGroup.getId(), requestedGroup.getPeople());
-		StepVerifier.create(result).expectNext(expectedGroup);
+		StepVerifier.create(result).expectNext(expectedGroup).verifyComplete();
 	}
 
 	@Test
@@ -138,7 +139,27 @@ public class CarPoolingServiceTest {
 
 		result.blockLast();
 		StepVerifier.create(carPoolingService.findGroup(givenGroupId)).verifyComplete();
-		StepVerifier.create(carPoolingService.journey(new GroupOfPeopleDTO(7, 3))).expectNextMatches(car -> car.getId() == expectedCarId);
+		StepVerifier.create(carPoolingService.journey(new GroupOfPeopleDTO(7, 3))).expectNextMatches(car -> car.getId() == expectedCarId).verifyComplete();
+	}
+
+	@Test
+	public void GivenGroupWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenAssigned() throws GroupAlreadyExistsException {
+		CarDTO expectedCar = new CarDTO(randomId(), 6);
+		int assignedGroupId = randomId();
+		int unassignedGroupId = randomId();
+		Mono<CarEntity> given = carPoolingService.createCars(Arrays.asList(new CarDTO(randomId(), 4), expectedCar))
+			.then(carPoolingService.journey(new GroupOfPeopleDTO(assignedGroupId, 5)))
+			.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId, 6)))
+			.then(carPoolingService.locateCarOfGroup(unassignedGroupId));
+		
+		Mono<CarEntity> droppedOff = given.then(carPoolingService.dropoff(assignedGroupId));
+		
+		Mono<CarEntity> finallyAssignedCar = droppedOff.then(carPoolingService.locateCarOfGroup(unassignedGroupId));
+		StepVerifier.create(finallyAssignedCar).expectNextMatches((car) -> expectedCar.getId() == car.getId()).verifyComplete();
+	}
+
+	private int randomId() {
+		return ThreadLocalRandom.current().nextInt(1, Integer.MAX_VALUE);
 	}
 
 }
