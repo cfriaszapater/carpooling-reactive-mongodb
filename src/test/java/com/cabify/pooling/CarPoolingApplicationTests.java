@@ -107,4 +107,14 @@ public class CarPoolingApplicationTests {
 		result.expectStatus().isNoContent();
 	}
 
+	@Test
+	public void GivenGroupAssigned_WhenPostDropoff_ThenOk() throws Exception {
+		putCars46().expectStatus().isOk();
+		postJourney4().expectStatus().isOk();
+
+		int groupId = 1;
+		ResponseSpec result = postDropoff(groupId);
+
+		result.expectStatus().isOk();
+	}
 }
