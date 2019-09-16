@@ -1,7 +1,7 @@
 package com.cabify.pooling.service;
 
-import static org.awaitility.Awaitility.*;
-import static java.util.concurrent.TimeUnit.*;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 
 import java.util.Arrays;
 import java.util.concurrent.Callable;
@@ -20,6 +20,7 @@ import com.cabify.pooling.entity.CarEntity;
 import com.cabify.pooling.entity.GroupOfPeopleEntity;
 import com.cabify.pooling.exception.GroupAlreadyExistsException;
 import com.cabify.pooling.repository.CarsRepository;
+import com.cabify.pooling.repository.GroupsRepository;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -31,12 +32,14 @@ public class CarPoolingServiceTest {
 
 	@Autowired
 	private CarsRepository carsRepository;
+	@Autowired
+	private GroupsRepository waitingGroupsRepository;
 
 	private CarPoolingService carPoolingService;
 
 	@Before
 	public void before() {
-		carPoolingService = new CarPoolingService(carsRepository);
+		carPoolingService = new CarPoolingService(carsRepository, waitingGroupsRepository);
 	}
 
 	@Test

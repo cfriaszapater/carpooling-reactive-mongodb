@@ -14,10 +14,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.cabify.pooling.dto.CarDTO;
 import com.cabify.pooling.dto.GroupOfPeopleDTO;
+import com.cabify.pooling.dto.GroupOfPeopleForm;
+import com.cabify.pooling.entity.CarEntity;
 import com.cabify.pooling.exception.GroupAlreadyExistsException;
 import com.cabify.pooling.service.CarPoolingService;
 
 import lombok.RequiredArgsConstructor;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -32,15 +35,27 @@ public class CarPoolingController {
 	}
 
 	@PutMapping(path = "/cars", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Void> putCars(@RequestBody @Valid List<CarDTO> cars) {
-		carPoolingService.createCars(cars).subscribe();
-		return ResponseEntity.ok().build();
+	public Flux<CarEntity> putCars(@RequestBody @Valid List<CarDTO> cars) {
+		return carPoolingService.createCars(cars);
 	}
 
 	@PostMapping(path = "/journey", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<Void> postJourney(@RequestBody @Valid GroupOfPeopleDTO group) throws GroupAlreadyExistsException {
-		carPoolingService.journey(group);
-		return ResponseEntity.ok().build();
+	public Mono<CarEntity> postJourney(@RequestBody @Valid GroupOfPeopleDTO group) throws GroupAlreadyExistsException {
+		return carPoolingService.journey(group);
+	}
+
+	@PostMapping(path = "/dropoff", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+	public Mono<ResponseEntity<Object>> postDropoff(@Valid GroupOfPeopleForm group) {
+		Integer id = group.getID();
+		
+		Mono<ResponseEntity<Object>> findAndRemove = carPoolingService.findWaitingGroup(id)
+				.map(g -> carPoolingService.removeWaitingGroup(id))
+				.map(v -> ResponseEntity.noContent().build())
+				.defaultIfEmpty(ResponseEntity.notFound().build());
+		
+		return carPoolingService.dropoff(id)
+				.map(car -> ResponseEntity.ok().build())
+				.switchIfEmpty(findAndRemove);
 	}
 
 }
