@@ -1,5 +1,9 @@
 package com.cabify.pooling;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.cabify.pooling.repository.CarsRepository;
 import com.cabify.pooling.repository.GroupsRepository;
@@ -117,4 +122,11 @@ public class CarPoolingApplicationTests {
 
 		result.expectStatus().isOk();
 	}
+
+	@Test
+	public void WhenPostDropoffBadFormat_Then400() throws Exception {
+		webClient.post().uri("http://localhost/dropoff").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+				.syncBody("wrong-body").exchange().expectStatus().isBadRequest();
+	}
+
 }
