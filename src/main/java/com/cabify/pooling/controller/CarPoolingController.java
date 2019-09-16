@@ -4,6 +4,7 @@ import java.util.List;
 
 import javax.validation.Valid;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,4 +59,14 @@ public class CarPoolingController {
 				.switchIfEmpty(findAndRemove);
 	}
 
+	@PostMapping(path = "/locate", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+	public Mono<ResponseEntity<CarDTO>> postLocate(@Valid GroupOfPeopleForm group) {
+		Integer groupId = group.getID();
+
+		return carPoolingService.locateCarOfGroup(groupId)
+				.map(car -> ResponseEntity.ok(new CarDTO(car.getId(), car.getSeatsAvailable())))
+				.switchIfEmpty(carPoolingService.findWaitingGroup(groupId)
+						.map(g -> new ResponseEntity<CarDTO>(HttpStatus.NO_CONTENT))
+						.defaultIfEmpty(new ResponseEntity<CarDTO>(HttpStatus.NOT_FOUND)));
+	}
 }

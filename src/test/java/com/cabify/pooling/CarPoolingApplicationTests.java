@@ -1,9 +1,5 @@
 package com.cabify.pooling;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import com.cabify.pooling.repository.CarsRepository;
 import com.cabify.pooling.repository.GroupsRepository;
@@ -127,6 +122,32 @@ public class CarPoolingApplicationTests {
 	public void WhenPostDropoffBadFormat_Then400() throws Exception {
 		webClient.post().uri("http://localhost/dropoff").contentType(MediaType.APPLICATION_FORM_URLENCODED)
 				.syncBody("wrong-body").exchange().expectStatus().isBadRequest();
+	}
+
+	@Test
+	public void WhenPostLocate_Then404() throws Exception {
+		ResponseSpec result = postLocate(1);
+
+		result.expectStatus().isNotFound();
+	}
+
+	private ResponseSpec postLocate(Integer groupId) throws Exception {
+		return webClient.post().uri("http://localhost/locate").contentType(MediaType.APPLICATION_FORM_URLENCODED)
+				.syncBody("ID=" + groupId).exchange();
+	}
+
+	@Test
+	public void GivenGroupAssignedToCar_WhenPostLocate_ThenCar_AndAvailableSeatsReduced() throws Exception {
+		putCars46();
+		postJourney4();
+
+		ResponseSpec result = postLocate(1);
+
+		result.expectStatus().isOk()
+			.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+			.expectBody()
+				.jsonPath("$.id").isEqualTo(1)
+				.jsonPath("$.seats").isEqualTo(0);
 	}
 
 }
