@@ -35,7 +35,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	@Override
 	public Mono<CarEntity> removeGroupFromCarAndFreeSeats(Integer groupId) {
-		Mono<GroupOfPeopleEntity> groupToRemove = findGroupById(groupId);
+		Mono<GroupOfPeopleEntity> groupToRemove = locateGroupById(groupId);
 
 		return groupToRemove.flatMap(group -> {
 			Update update = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
@@ -44,7 +44,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 	}
 
 	@Override
-	public Mono<GroupOfPeopleEntity> findGroupById(Integer groupId) {
+	public Mono<GroupOfPeopleEntity> locateGroupById(Integer groupId) {
 		return locateCarOfGroup(groupId)
 				.map(car -> car.getGroups())
 				.flatMapMany(Flux::fromIterable)

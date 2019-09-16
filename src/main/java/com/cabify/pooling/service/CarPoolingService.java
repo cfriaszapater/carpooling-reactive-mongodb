@@ -34,13 +34,31 @@ public class CarPoolingService {
 	}
 
 	public Mono<CarEntity> dropoff(Integer groupId) {
-		return carsRepository.removeGroupFromCarAndFreeSeats(groupId);
+		Mono<CarEntity> droppedOff = carsRepository.removeGroupFromCarAndFreeSeats(groupId);
+		
+		// Fire asynchronous reassign
+		reAssignWaitingGroups();
+		
+		return droppedOff;
 	}
 
-	public Mono<GroupOfPeopleEntity> findGroup(Integer groupId) {
-		return carsRepository.findGroupById(groupId);
+	private void reAssignWaitingGroups() {
+		// TODO Auto-generated method stub
+		
 	}
 
+	/**
+	 * Locate group in cars, return group.
+	 * @return group if assigned, or empty if group is not assigned to any car.
+	 */
+	public Mono<GroupOfPeopleEntity> locateGroup(Integer groupId) {
+		return carsRepository.locateGroupById(groupId);
+	}
+
+	/**
+	 * Locate group in cars, return car.
+	 * @return car if assigned, or empty if group is not assigned to any car.
+	 */
 	public Mono<CarEntity> locateCarOfGroup(int groupId) {
 		return carsRepository.locateCarOfGroup(groupId);
 	}
