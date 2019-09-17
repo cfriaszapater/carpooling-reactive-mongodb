@@ -20,7 +20,6 @@ import reactor.test.StepVerifier;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -172,13 +171,13 @@ public class CarPoolingServiceTest {
 		carPoolingService.createCars(Arrays.asList(new CarDTO(randomId(), 4), expectedCar))
 				.then(carPoolingService.journey(new GroupOfPeopleDTO(assignedGroupId, 5)))
 				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId, 6)))
-				.then(carPoolingService.locateCarOfGroup(unassignedGroupId)).block();
+				.block();
 		log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
 		log.info("given cars: {}", carPoolingService.cars().collectList().block());
 
 		carPoolingService.dropoff(assignedGroupId).subscribe();
 
-		await().atMost(1, SECONDS).until(groupReassigned(unassignedGroupId));
+		await().atMost(1, SECONDS).until(() -> groupReassigned(unassignedGroupId));
 		Mono<CarEntity> finallyAssignedCar = carPoolingService.locateCarOfGroup(unassignedGroupId);
 		StepVerifier.create(finallyAssignedCar).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
 		StepVerifier.create(carPoolingService.waitingGroups()).expectComplete();
@@ -186,8 +185,35 @@ public class CarPoolingServiceTest {
 		log.info("then cars: {}", carPoolingService.cars().collectList().block());
 	}
 
-	private Callable<Boolean> groupReassigned(int unassignedGroupId) {
-		return () -> carPoolingService.locateCarOfGroup(unassignedGroupId).block() != null;
+	@Test
+	public void GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenAssigned() {
+		CarDTO expectedCar = new CarDTO(randomId(), 6);
+		int assignedGroupId = 1;
+		int unassignedGroupId1 = 2;
+		int unassignedGroupId2 = 3;
+		int unassignedGroupId3 = 4;
+		carPoolingService.createCars(Arrays.asList(new CarDTO(randomId(), 1), expectedCar))
+				.then(carPoolingService.journey(new GroupOfPeopleDTO(assignedGroupId, 6)))
+				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId1, 2)))
+				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId2, 2)))
+				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId3, 2)))
+				.block();
+		log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+		log.info("given cars: {}", carPoolingService.cars().collectList().block());
+
+		carPoolingService.dropoff(assignedGroupId).subscribe();
+
+		await().atMost(1, SECONDS).until(() -> groupReassigned(unassignedGroupId1) && groupReassigned(unassignedGroupId2) && groupReassigned(unassignedGroupId3));
+		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId1)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
+		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId2)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
+		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId3)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
+		StepVerifier.create(carPoolingService.waitingGroups()).expectComplete();
+		log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+		log.info("then cars: {}", carPoolingService.cars().collectList().block());
+	}
+
+	private boolean groupReassigned(int unassignedGroupId) {
+		return carPoolingService.locateCarOfGroup(unassignedGroupId).block() != null;
 	}
 
 	private int randomId() {
