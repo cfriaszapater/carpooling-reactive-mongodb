@@ -3,6 +3,8 @@ package com.cabify.pooling.repository;
 import static org.springframework.data.domain.Sort.by;
 import static org.springframework.data.domain.Sort.Order.asc;
 
+import lombok.extern.slf4j.Slf4j;
+import lombok.extern.slf4j.XSlf4j;
 import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -18,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RequiredArgsConstructor
+@Slf4j
 public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	private static final String SEATS_AVAILABLE = "seatsAvailable";
@@ -30,7 +33,8 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 		Update update = new Update()
 				.inc(SEATS_AVAILABLE, -group.getPeople())
 				.addToSet("groups").value(group);
-		return mongoOperations.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+		return mongoOperations.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class)
+				.log("assignToCarWithAvailableSeats");
 	}
 
 	@Override
