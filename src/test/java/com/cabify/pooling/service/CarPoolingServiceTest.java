@@ -77,7 +77,7 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenCarsWithoutEnoughAvailableSeats_WhenJourney_ThenCarUnassigned() {
+	public void GivenCarsWithoutEnoughAvailableSeats_WhenJourney_ThenCarUnassigned_AndWaiting() {
 		carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 3)))
 				.then(carPoolingService.journey(new GroupOfPeopleDTO(1, 2))).block();
 
@@ -85,6 +85,7 @@ public class CarPoolingServiceTest {
 		Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
 
 		StepVerifier.create(result).verifyComplete();
+		StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(requestedGroup.getId())).verifyComplete();
 	}
 
 	@Test
@@ -191,6 +192,18 @@ public class CarPoolingServiceTest {
 
 	private int randomId() {
 		return ThreadLocalRandom.current().nextInt(1, Integer.MAX_VALUE);
+	}
+
+	@Test
+	public void GivenGroupWaiting_WhenDropoff_ThenEmptyResult_AndWaiting() {
+		GroupOfPeopleDTO group = new GroupOfPeopleDTO(1, 2);
+		Mono<CarEntity> given = carPoolingService.journey(group);
+
+		Mono<CarEntity> result = given.then(carPoolingService.dropoff(group.getId()));
+
+		StepVerifier.create(result).verifyComplete();
+		// Still in waiting groups. It is not removed by carPoolingService.dropoff, but in the controller
+		StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(group.getId())).verifyComplete();
 	}
 
 }
