@@ -55,7 +55,8 @@ public class CarPoolingService {
 		Flux<GroupOfPeopleEntity> groupsNotWaitingAnymore = waitingGroups.filterWhen(group -> carsRepository.assignToCarWithAvailableSeats(group)
 				.map(Objects::nonNull)
 		);
-		groupsNotWaitingAnymore.flatMap(waitingGroupsRepository::delete)
+		groupsNotWaitingAnymore
+				.flatMap(waitingGroupsRepository::delete)
 				.subscribe();
 	}
 

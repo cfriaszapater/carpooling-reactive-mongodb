@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.test.StepVerifier;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -41,12 +41,11 @@ public class CarPoolingServiceConcurrentTest {
 	@Test
 	public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_ThenCarAssignedToOnlyOne() throws InterruptedException {
 		final int numberOfIterations = 1000;
-		final int numberOfConcurrentRequests = 20;
 		for (int i = 0; i < numberOfIterations; i++) {
 			log.trace("iteration {} starts...", i);
-			carPoolingService.createCars(Arrays.asList(new CarDTO(1, 4))).blockLast();
+			carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 4))).blockLast();
 
-			concurrentPostJourneys(numberOfConcurrentRequests);
+			concurrentPostJourneys();
 
 			thenAssignedGroups(1);
 			log.trace("...iteration {} ends", i);
@@ -64,12 +63,11 @@ public class CarPoolingServiceConcurrentTest {
 	@Test
 	public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_AndDropoff_ThenCarUnassigned() throws InterruptedException {
 		final int numberOfIterations = 100;
-		final int numberOfConcurrentRequests = 10;
 		for (int i = 0; i < numberOfIterations; i++) {
 			log.trace("iteration {} starts...", i);
-			carPoolingService.createCars(Arrays.asList(new CarDTO(1, 4))).blockLast();
+			carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 4))).blockLast();
 
-			concurrentPostJourneysAndDropoff(numberOfConcurrentRequests);
+			concurrentPostJourneysAndDropoff();
 
 			thenAssignedGroups(0);
 			log.trace("...iteration {} ends", i);
@@ -123,27 +121,25 @@ public class CarPoolingServiceConcurrentTest {
 //		}
 //	}
 
-	private void concurrentPostJourneys(int numberOfConcurrentRequests) throws InterruptedException {
+	private void concurrentPostJourneys() throws InterruptedException {
 		CountDownLatch startGate = new CountDownLatch(1);
-		CountDownLatch finishLine = new CountDownLatch(numberOfConcurrentRequests);
+		CountDownLatch finishLine = new CountDownLatch(20);
 
-		for (int i = 0; i < numberOfConcurrentRequests; i++) {
+		for (int i = 0; i < 20; i++) {
 			final int groupId = i;
-			Thread thread = new Thread() {
-				public void run() {
-					try {
-						log.trace("{} awaiting at start gate...", groupId);
-						startGate.await();
+			Thread thread = new Thread(() -> {
+				try {
+					log.trace("{} awaiting at start gate...", groupId);
+					startGate.await();
 
-						carPoolingService.journey(new GroupOfPeopleDTO(groupId, 4)).block();
+					carPoolingService.journey(new GroupOfPeopleDTO(groupId, 4)).block();
 
-						finishLine.countDown();
-						log.trace("...{} crossed finish line", groupId);
-					} catch (InterruptedException e) {
-						log.warn(e.getMessage(), e);
-					}
+					finishLine.countDown();
+					log.trace("...{} crossed finish line", groupId);
+				} catch (InterruptedException e) {
+					log.warn(e.getMessage(), e);
 				}
-			};
+			});
 			thread.start();
 		}
 
@@ -154,28 +150,26 @@ public class CarPoolingServiceConcurrentTest {
 		}
 	}
 
-	private void concurrentPostJourneysAndDropoff(int numberOfConcurrentRequests) throws InterruptedException {
+	private void concurrentPostJourneysAndDropoff() throws InterruptedException {
 		CountDownLatch startGate = new CountDownLatch(1);
-		CountDownLatch finishLine = new CountDownLatch(numberOfConcurrentRequests);
+		CountDownLatch finishLine = new CountDownLatch(10);
 
-		for (int i = 0; i < numberOfConcurrentRequests; i++) {
+		for (int i = 0; i < 10; i++) {
 			final int groupId = i;
-			Thread thread = new Thread() {
-				public void run() {
-					try {
-						log.trace("{} awaiting at start gate...", groupId);
-						startGate.await();
+			Thread thread = new Thread(() -> {
+				try {
+					log.trace("{} awaiting at start gate...", groupId);
+					startGate.await();
 
-						carPoolingService.journey(new GroupOfPeopleDTO(groupId, 4))
-								.then(carPoolingService.dropoff(groupId)).block();
+					carPoolingService.journey(new GroupOfPeopleDTO(groupId, 4))
+							.then(carPoolingService.dropoff(groupId)).block();
 
-						finishLine.countDown();
-						log.trace("...{} crossed finish line", groupId);
-					} catch (InterruptedException e) {
-						log.warn(e.getMessage(), e);
-					}
+					finishLine.countDown();
+					log.trace("...{} crossed finish line", groupId);
+				} catch (InterruptedException e) {
+					log.warn(e.getMessage(), e);
 				}
-			};
+			});
 			thread.start();
 		}
 
