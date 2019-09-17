@@ -50,6 +50,7 @@ public class CarPoolingService {
 	}
 
 	private void reAssignWaitingGroups() {
+		// TODO For concurrency: a) mark reassigningSince + select where reassigningSince = null + async crashRecovery sets reassigningSince = null, or b) findAndRemove + transaction
 		Flux<GroupOfPeopleEntity> waitingGroups = waitingGroupsRepository.findAll(Sort.by("insertDate").ascending());
 		Flux<GroupOfPeopleEntity> groupsNotWaitingAnymore = waitingGroups.filterWhen(group -> carsRepository.assignToCarWithAvailableSeats(group)
 				.map(Objects::nonNull)
