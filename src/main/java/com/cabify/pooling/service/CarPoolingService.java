@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 import javax.validation.Valid;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -51,9 +52,9 @@ public class CarPoolingService {
 	private void reAssignWaitingGroups() {
 		Flux<GroupOfPeopleEntity> waitingGroups = waitingGroupsRepository.findAll(Sort.by("insertDate").ascending());
 		Flux<GroupOfPeopleEntity> groupsNotWaitingAnymore = waitingGroups.filterWhen(group -> carsRepository.assignToCarWithAvailableSeats(group)
-				.map(assignedCar -> assignedCar != null)
+				.map(Objects::nonNull)
 		);
-		groupsNotWaitingAnymore.flatMap(group -> waitingGroupsRepository.delete(group))
+		groupsNotWaitingAnymore.flatMap(waitingGroupsRepository::delete)
 				.subscribe();
 	}
 
@@ -62,7 +63,7 @@ public class CarPoolingService {
 	 *
 	 * @return group if assigned, or empty if group is not assigned to any car.
 	 */
-	public Mono<GroupOfPeopleEntity> locateGroup(Integer groupId) {
+	Mono<GroupOfPeopleEntity> locateGroup(Integer groupId) {
 		return carsRepository.locateGroupById(groupId);
 	}
 
