@@ -2,9 +2,6 @@ package com.cabify.pooling.service;
 
 import com.cabify.pooling.dto.CarDTO;
 import com.cabify.pooling.dto.GroupOfPeopleDTO;
-import com.cabify.pooling.entity.CarEntity;
-import com.cabify.pooling.entity.GroupOfPeopleEntity;
-import com.cabify.pooling.exception.GroupAlreadyExistsException;
 import com.cabify.pooling.repository.CarsRepository;
 import com.cabify.pooling.repository.GroupsRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -14,10 +11,9 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.junit4.SpringRunner;
-import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import java.util.*;
+import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -52,30 +48,34 @@ public class CarPoolingServiceConcurrentTest {
 
 			concurrentPostJourneys(numberOfConcurrentRequests);
 
-			StepVerifier.create(
-					carPoolingService.cars()
-							.map(car -> car.getGroups().size())
-							.reduce(Integer::sum))
-					.expectNext(1).verifyComplete();
+			thenAssignedGroups(1);
 			log.trace("...iteration {} ends", i);
 		}
 	}
 
-//	@Test
-//	public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_AndDropoff_ThenCarUnassigned() throws InterruptedException {
-//		final int numberOfIterations = 100;
-//		final int numberOfConcurrentRequests = 10;
-//		for (int i = 0; i < numberOfIterations; i++) {
-//			log.trace("iteration {} starts...", i);
-//			carPoolingService.createCars(Arrays.asList(new CarDTO(1, 4)));
-//
-//			concurrentPostJourneysAndDropoff(numberOfConcurrentRequests);
-//
-//			thenCarAssignedToGroups(carPoolingService.groups(), 0);
-//			log.trace("...iteration {} ends", i);
-//		}
-//	}
-//
+	private void thenAssignedGroups(int expectedGroupsAssigned) {
+		StepVerifier.create(
+				carPoolingService.cars()
+						.map(car -> car.getGroups().size())
+						.reduce(Integer::sum)
+		).expectNext(expectedGroupsAssigned).verifyComplete();
+	}
+
+	@Test
+	public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_AndDropoff_ThenCarUnassigned() throws InterruptedException {
+		final int numberOfIterations = 100;
+		final int numberOfConcurrentRequests = 10;
+		for (int i = 0; i < numberOfIterations; i++) {
+			log.trace("iteration {} starts...", i);
+			carPoolingService.createCars(Arrays.asList(new CarDTO(1, 4))).blockLast();
+
+			concurrentPostJourneysAndDropoff(numberOfConcurrentRequests);
+
+			thenAssignedGroups(0);
+			log.trace("...iteration {} ends", i);
+		}
+	}
+
 //	@Test
 //	public void GivenCarsAssigned_WhenConcurrentPostDropoff_ThenCarsUnassigned() throws InterruptedException {
 //		final int numberOfIterations = 100;
@@ -154,38 +154,38 @@ public class CarPoolingServiceConcurrentTest {
 		}
 	}
 
-//	private void concurrentPostJourneysAndDropoff(int numberOfConcurrentRequests) throws InterruptedException {
-//		CountDownLatch startGate = new CountDownLatch(1);
-//		CountDownLatch finishLine = new CountDownLatch(numberOfConcurrentRequests);
-//
-//		for (int i = 0; i < numberOfConcurrentRequests; i++) {
-//			final int groupId = i;
-//			Thread thread = new Thread() {
-//				public void run() {
-//					try {
-//						log.trace("{} awaiting at start gate...", groupId);
-//						startGate.await();
-//
-//						carPoolingService.journey(new GroupOfPeopleDTO(groupId, 4));
-//						carPoolingService.dropoff(groupId);
-//
-//						finishLine.countDown();
-//						log.trace("...{} crossed finish line", groupId);
-//					} catch (InterruptedException | GroupAlreadyExistsException e) {
-//						log.warn(e.getMessage(), e);
-//					}
-//				}
-//			};
-//			thread.start();
-//		}
-//
-//		startGate.countDown();
-//		boolean allThreadsReachedFinishLine = finishLine.await(5, TimeUnit.SECONDS);
-//		if (!allThreadsReachedFinishLine) {
-//			fail("some concurrent request failed");
-//		}
-//	}
-//
+	private void concurrentPostJourneysAndDropoff(int numberOfConcurrentRequests) throws InterruptedException {
+		CountDownLatch startGate = new CountDownLatch(1);
+		CountDownLatch finishLine = new CountDownLatch(numberOfConcurrentRequests);
+
+		for (int i = 0; i < numberOfConcurrentRequests; i++) {
+			final int groupId = i;
+			Thread thread = new Thread() {
+				public void run() {
+					try {
+						log.trace("{} awaiting at start gate...", groupId);
+						startGate.await();
+
+						carPoolingService.journey(new GroupOfPeopleDTO(groupId, 4))
+								.then(carPoolingService.dropoff(groupId)).block();
+
+						finishLine.countDown();
+						log.trace("...{} crossed finish line", groupId);
+					} catch (InterruptedException e) {
+						log.warn(e.getMessage(), e);
+					}
+				}
+			};
+			thread.start();
+		}
+
+		startGate.countDown();
+		boolean allThreadsReachedFinishLine = finishLine.await(5, TimeUnit.SECONDS);
+		if (!allThreadsReachedFinishLine) {
+			fail("some concurrent request failed");
+		}
+	}
+
 //	private List<Optional<CarEntity>> concurrentPostDropoff(List<GroupOfPeopleEntity> groups) throws InterruptedException {
 //		CountDownLatch startGate = new CountDownLatch(1);
 //		CountDownLatch finishLine = new CountDownLatch(groups.size());

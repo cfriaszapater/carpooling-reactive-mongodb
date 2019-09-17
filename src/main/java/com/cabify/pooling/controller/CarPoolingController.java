@@ -25,7 +25,7 @@ public class CarPoolingController {
 
 	@GetMapping("/status")
 	public Mono<String> status() {
-		return Mono.just("ok");
+		return Mono.just("I'm alive");
 	}
 
 	@PutMapping(path = "/cars", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -42,14 +42,14 @@ public class CarPoolingController {
 	public Mono<ResponseEntity<Void>> postDropoff(@Valid GroupOfPeopleForm group) {
 		Integer id = group.getID();
 
-		Mono<ResponseEntity<Void>> findAndRemove = carPoolingService.findWaitingGroup(id)
+		Mono<ResponseEntity<Void>> findAndRemoveFromWaitingGroups = carPoolingService.findWaitingGroup(id)
 				.doOnNext(g -> carPoolingService.removeWaitingGroup(id).subscribe())
 				.map(v -> new ResponseEntity<Void>(HttpStatus.NO_CONTENT))
 				.defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
 
 		return carPoolingService.dropoff(id)
 				.map(car -> new ResponseEntity<Void>(HttpStatus.OK))
-				.switchIfEmpty(findAndRemove);
+				.switchIfEmpty(findAndRemoveFromWaitingGroups);
 	}
 
 	@PostMapping(path = "/locate", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
