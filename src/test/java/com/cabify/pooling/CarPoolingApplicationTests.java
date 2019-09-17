@@ -14,6 +14,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
 import reactor.core.publisher.Hooks;
+import reactor.test.StepVerifier;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -146,6 +150,49 @@ public class CarPoolingApplicationTests {
 				.expectBody()
 				.jsonPath("$.id").isEqualTo(1)
 				.jsonPath("$.seats").isEqualTo(0);
+	}
+
+	@Test
+	public void GivenGroupWaiting_WhenPostLocate_Then204() throws Exception {
+		postJourney4();
+
+		ResponseSpec result = postLocate(1);
+
+		result.expectStatus().isNoContent();
+	}
+
+	@Test
+	public void GivenGroupNotExists_WhenPostLocate_Then404() throws Exception {
+		ResponseSpec result = postLocate(1);
+
+		result.expectStatus().isNotFound();
+	}
+
+	@Test
+	public void GivenGroupWaiting_AndDroppedoff_WhenPostLocateAfterSomeTime_Then404() throws Exception {
+		postJourney4();
+		postDropoff(1);
+
+		await().atMost(1, SECONDS).ignoreExceptions().until(() -> {
+			postLocate(1).expectStatus().isNotFound();
+			return true;
+		});
+		ResponseSpec result = postLocate(1);
+
+		result.expectStatus().isNotFound();
+	}
+
+	@Test
+	public void GivenGroupAssigned_AndDroppedoff_WhenLocate_Then404() throws Exception {
+		putCars46();
+		postJourney4();
+		int groupId = 1;
+		postDropoff(groupId);
+
+		ResponseSpec result = postLocate(groupId);
+
+		result.expectStatus().isNotFound();
+		StepVerifier.create(groupsRepository.findAll()).verifyComplete();
 	}
 
 }

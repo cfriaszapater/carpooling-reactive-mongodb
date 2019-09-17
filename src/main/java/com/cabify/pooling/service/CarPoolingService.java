@@ -84,11 +84,11 @@ public class CarPoolingService {
 		return waitingGroupsRepository.deleteById(id);
 	}
 
-	public Flux<GroupOfPeopleEntity> waitingGroups() {
+	Flux<GroupOfPeopleEntity> waitingGroups() {
 		return waitingGroupsRepository.findAll();
 	}
 
-	public Flux<CarEntity> cars() {
+	Flux<CarEntity> cars() {
 		return carsRepository.findAll();
 	}
 }
