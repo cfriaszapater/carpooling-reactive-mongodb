@@ -186,17 +186,19 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenAssigned() {
+	public void GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenAssignedFIFO() {
 		CarDTO expectedCar = new CarDTO(randomId(), 6);
 		int assignedGroupId = 1;
 		int unassignedGroupId1 = 2;
 		int unassignedGroupId2 = 3;
 		int unassignedGroupId3 = 4;
+		int unassignedGroupId4 = 5;
 		carPoolingService.createCars(Arrays.asList(new CarDTO(randomId(), 1), expectedCar))
 				.then(carPoolingService.journey(new GroupOfPeopleDTO(assignedGroupId, 6)))
 				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId1, 2)))
 				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId2, 2)))
 				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId3, 2)))
+				.then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId4, 2)))
 				.block();
 		log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
 		log.info("given cars: {}", carPoolingService.cars().collectList().block());
@@ -207,7 +209,9 @@ public class CarPoolingServiceTest {
 		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId1)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
 		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId2)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
 		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId3)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
-		StepVerifier.create(carPoolingService.waitingGroups()).expectComplete();
+		// FIFO - The last one to request journey is the one that is not assigned
+		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId4)).verifyComplete();
+		StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(unassignedGroupId4)).verifyComplete();
 		log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
 		log.info("then cars: {}", carPoolingService.cars().collectList().block());
 	}
