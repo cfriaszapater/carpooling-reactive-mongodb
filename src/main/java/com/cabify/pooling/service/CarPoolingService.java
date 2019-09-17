@@ -45,8 +45,7 @@ public class CarPoolingService {
 		Mono<CarEntity> droppedOff = carsRepository.removeGroupFromCarAndFreeSeats(groupId);
 
 		// Fire asynchronous reassign (to start after droppedOff stream is emitted)
-		return droppedOff.doOnSuccess(car -> reAssignWaitingGroups())
-				.log("dropoff");
+		return droppedOff.doOnSuccess(car -> reAssignWaitingGroups());
 	}
 
 	private void reAssignWaitingGroups() {
@@ -56,23 +55,6 @@ public class CarPoolingService {
 		);
 		groupsNotWaitingAnymore.flatMap(group -> waitingGroupsRepository.delete(group))
 				.subscribe();
-
-//		waitingGroupsRepository.findAll(Sort.by("insertDate").ascending())
-//				.log("findall")
-//				.filter(group -> {
-//					try {
-//						log.info("REASSIGNING GROUP {}", group);
-//						CarEntity assignedCar = carsRepository.assignToCarWithAvailableSeats(group).block();
-//						log.info("assignedCar {}", assignedCar);
-//						return assignedCar != null;
-//					} catch (Exception e) {
-//						e.printStackTrace();
-//						return false;
-//					}
-//				})
-//				.log("filteredFindall")
-//				.doOnNext(group -> waitingGroupsRepository.delete(group).subscribe())
-//				.subscribe(group -> log.info("jarl: {}", group), err -> log.error(err.getMessage(), err));
 	}
 
 	/**

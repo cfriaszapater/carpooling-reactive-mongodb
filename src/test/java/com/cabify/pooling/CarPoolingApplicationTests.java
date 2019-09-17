@@ -1,5 +1,8 @@
 package com.cabify.pooling;
 
+import com.cabify.pooling.repository.CarsRepository;
+import com.cabify.pooling.repository.GroupsRepository;
+import com.cabify.util.FileUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -10,11 +13,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
-
-import com.cabify.pooling.repository.CarsRepository;
-import com.cabify.pooling.repository.GroupsRepository;
-import com.cabify.util.FileUtil;
-
 import reactor.core.publisher.Hooks;
 
 @RunWith(SpringRunner.class)
@@ -24,7 +22,7 @@ public class CarPoolingApplicationTests {
 
 	@Autowired
 	private WebTestClient webClient;
-	
+
 	@Autowired
 	private GroupsRepository groupsRepository;
 
@@ -144,8 +142,8 @@ public class CarPoolingApplicationTests {
 		ResponseSpec result = postLocate(1);
 
 		result.expectStatus().isOk()
-			.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
-			.expectBody()
+				.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+				.expectBody()
 				.jsonPath("$.id").isEqualTo(1)
 				.jsonPath("$.seats").isEqualTo(0);
 	}

@@ -1,28 +1,21 @@
 package com.cabify.pooling.controller;
 
-import java.util.List;
-
-import javax.validation.Valid;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-
 import com.cabify.pooling.dto.CarDTO;
 import com.cabify.pooling.dto.GroupOfPeopleDTO;
 import com.cabify.pooling.dto.GroupOfPeopleForm;
 import com.cabify.pooling.entity.CarEntity;
 import com.cabify.pooling.exception.GroupAlreadyExistsException;
 import com.cabify.pooling.service.CarPoolingService;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -48,12 +41,12 @@ public class CarPoolingController {
 	@PostMapping(path = "/dropoff", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
 	public Mono<ResponseEntity<Void>> postDropoff(@Valid GroupOfPeopleForm group) {
 		Integer id = group.getID();
-		
+
 		Mono<ResponseEntity<Void>> findAndRemove = carPoolingService.findWaitingGroup(id)
 				.doOnNext(g -> carPoolingService.removeWaitingGroup(id))
 				.map(v -> new ResponseEntity<Void>(HttpStatus.NO_CONTENT))
 				.defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
-		
+
 		return carPoolingService.dropoff(id)
 				.map(car -> new ResponseEntity<Void>(HttpStatus.OK))
 				.switchIfEmpty(findAndRemove);

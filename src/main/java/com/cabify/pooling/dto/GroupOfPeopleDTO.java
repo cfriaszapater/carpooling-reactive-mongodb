@@ -1,9 +1,9 @@
 package com.cabify.pooling.dto;
 
-import javax.validation.constraints.NotNull;
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
+
+import javax.validation.constraints.NotNull;
 
 @Data
 @AllArgsConstructor
