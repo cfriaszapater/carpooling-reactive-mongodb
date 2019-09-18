@@ -26,11 +26,15 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	@Override
 	public Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group) {
-		Query query = Query.query(Criteria.where(SEATS_AVAILABLE).gte(group.getPeople())).with(by(asc(SEATS_AVAILABLE)));
+		int people = group.getPeople();
 		Update update = new Update()
-				.inc(SEATS_AVAILABLE, -group.getPeople())
+				.inc(SEATS_AVAILABLE, -people)
 				.addToSet("groups").value(group);
-		return mongoOperations.findAndModify(query, update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+		return mongoOperations.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+	}
+
+	private Query queryBySeatsAvailable(int people) {
+		return Query.query(Criteria.where(SEATS_AVAILABLE).gte(people)).with(by(asc(SEATS_AVAILABLE)));
 	}
 
 	@Override
@@ -48,7 +52,9 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 		return locateCarOfGroup(groupId)
 				.map(car -> car.getGroups())
 				.flatMapMany(Flux::fromIterable)
-				.filter(group -> group.getId().equals(groupId)).next();
+				.filter(group -> group.getId().equals(groupId))
+				.next()
+				;
 	}
 
 	@Override

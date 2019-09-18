@@ -19,7 +19,6 @@ import reactor.test.StepVerifier;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -52,7 +51,7 @@ public class CarPoolingServiceTest {
 		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
 		Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
 
-		GroupOfPeopleEntity expectedGroup = new GroupOfPeopleEntity(requestedGroup.getId(), requestedGroup.getPeople(), new Date());
+		GroupOfPeopleEntity expectedGroup = GroupOfPeopleEntity.builder().id(requestedGroup.getId()).build();
 		StepVerifier.create(result).expectNextMatches(
 				assignedCar -> expectedCar.getId() == assignedCar.getId() &&
 						expectedCar.getSeats() - requestedGroup.getPeople() == assignedCar.getSeatsAvailable() &&
@@ -68,7 +67,7 @@ public class CarPoolingServiceTest {
 		GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(1, 2);
 		Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
 
-		GroupOfPeopleEntity expectedGroup = new GroupOfPeopleEntity(requestedGroup.getId(), requestedGroup.getPeople(), new Date());
+		GroupOfPeopleEntity expectedGroup = GroupOfPeopleEntity.builder().id(requestedGroup.getId()).build();
 		StepVerifier.create(result).expectNextMatches(assignedCar -> expectedCar.getId() == assignedCar.getId()
 				&& expectedCar.getSeats() - requestedGroup.getPeople() == assignedCar.getSeatsAvailable()
 				&& assignedCar.getGroups().size() == 1
@@ -109,7 +108,7 @@ public class CarPoolingServiceTest {
 
 		Mono<GroupOfPeopleEntity> result = given.then(carPoolingService.locateGroup(requestedGroup.getId()));
 
-		GroupOfPeopleEntity expectedGroup = new GroupOfPeopleEntity(requestedGroup.getId(), requestedGroup.getPeople(), new Date());
+		GroupOfPeopleEntity expectedGroup = GroupOfPeopleEntity.builder().id(requestedGroup.getId()).build();
 		StepVerifier.create(result).expectNext(expectedGroup).verifyComplete();
 	}
 
@@ -164,7 +163,7 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenGroupWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenAssigned() {
+	public void GivenGroupWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassigned() {
 		CarDTO expectedCar = new CarDTO(randomId(), 6);
 		int assignedGroupId = 1;
 		int unassignedGroupId = 2;
@@ -186,7 +185,7 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenAssignedFIFO() {
+	public void GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassignedFIFO() {
 		CarDTO expectedCar = new CarDTO(randomId(), 6);
 		int assignedGroupId = 1;
 		int unassignedGroupId1 = 2;
