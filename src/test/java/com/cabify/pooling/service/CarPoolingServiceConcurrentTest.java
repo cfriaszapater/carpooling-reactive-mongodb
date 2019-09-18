@@ -3,7 +3,6 @@ package com.cabify.pooling.service;
 import com.cabify.pooling.dto.CarDTO;
 import com.cabify.pooling.dto.GroupOfPeopleDTO;
 import com.cabify.pooling.repository.CarsRepository;
-import com.cabify.pooling.repository.GroupsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,10 +12,13 @@ import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.awaitility.Awaitility.await;
 import static org.junit.Assert.fail;
 
 @DataMongoTest
@@ -26,16 +28,13 @@ public class CarPoolingServiceConcurrentTest {
 
 	@Autowired
 	private CarsRepository carsRepository;
-	@Autowired
-	private GroupsRepository waitingGroupsRepository;
 
 	private CarPoolingService carPoolingService;
 
 	@Before
 	public void before() {
-		waitingGroupsRepository.deleteAll().block();
 		carsRepository.deleteAll().block();
-		carPoolingService = new CarPoolingService(carsRepository, waitingGroupsRepository);
+		carPoolingService = new CarPoolingService(carsRepository);
 	}
 
 	@Test
@@ -53,11 +52,14 @@ public class CarPoolingServiceConcurrentTest {
 	}
 
 	private void thenAssignedGroups(int expectedGroupsAssigned) {
-		StepVerifier.create(
-				carPoolingService.cars()
-						.map(car -> car.getGroups().size())
-						.reduce(Integer::sum)
-		).expectNext(expectedGroupsAssigned).verifyComplete();
+		await().atMost(1, SECONDS).ignoreExceptions().pollInterval(Duration.ofMillis(500)).until(() -> {
+			StepVerifier.create(
+					carPoolingService.cars()
+							.map(car -> car.getGroups().size())
+							.reduce(Integer::sum)
+			).expectNext(expectedGroupsAssigned).verifyComplete();
+			return true;
+		});
 	}
 
 	@Test

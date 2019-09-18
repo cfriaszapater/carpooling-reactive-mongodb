@@ -1,7 +1,6 @@
 package com.cabify.pooling;
 
 import com.cabify.pooling.repository.CarsRepository;
-import com.cabify.pooling.repository.GroupsRepository;
 import com.cabify.util.FileUtil;
 import org.junit.Before;
 import org.junit.Test;
@@ -13,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.test.web.reactive.server.WebTestClient.ResponseSpec;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
@@ -28,16 +28,12 @@ public class CarPoolingApplicationTests {
 	private WebTestClient webClient;
 
 	@Autowired
-	private GroupsRepository groupsRepository;
-
-	@Autowired
 	private CarsRepository carsRepository;
 
 	@Before
 	public void before() {
 		Hooks.onOperatorDebug();
-		groupsRepository.deleteAll().block();
-		carsRepository.deleteAll().block();
+		carsRepository.initWith(Flux.empty()).blockLast();
 	}
 
 	@Test
@@ -192,7 +188,7 @@ public class CarPoolingApplicationTests {
 		ResponseSpec result = postLocate(groupId);
 
 		result.expectStatus().isNotFound();
-		StepVerifier.create(groupsRepository.findAll()).verifyComplete();
+		StepVerifier.create(carsRepository.findAllWaiting()).verifyComplete();
 	}
 
 }

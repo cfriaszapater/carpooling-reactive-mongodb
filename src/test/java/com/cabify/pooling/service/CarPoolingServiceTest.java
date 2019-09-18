@@ -5,7 +5,6 @@ import com.cabify.pooling.dto.GroupOfPeopleDTO;
 import com.cabify.pooling.entity.CarEntity;
 import com.cabify.pooling.entity.GroupOfPeopleEntity;
 import com.cabify.pooling.repository.CarsRepository;
-import com.cabify.pooling.repository.GroupsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -31,16 +31,14 @@ public class CarPoolingServiceTest {
 
 	@Autowired
 	private CarsRepository carsRepository;
-	@Autowired
-	private GroupsRepository waitingGroupsRepository;
 
 	private CarPoolingService carPoolingService;
 
 	@Before
 	public void before() {
-		waitingGroupsRepository.deleteAll().block();
-		carsRepository.deleteAll().block();
-		carPoolingService = new CarPoolingService(carsRepository, waitingGroupsRepository);
+		Hooks.onOperatorDebug();
+		carsRepository.initWith(Flux.empty()).blockLast();
+		carPoolingService = new CarPoolingService(carsRepository);
 	}
 
 	@Test
@@ -205,14 +203,14 @@ public class CarPoolingServiceTest {
 		carPoolingService.dropoff(assignedGroupId).subscribe();
 
 		await().atMost(1, SECONDS).until(() -> groupReassigned(unassignedGroupId1) && groupReassigned(unassignedGroupId2) && groupReassigned(unassignedGroupId3));
+		log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+		log.info("then cars: {}", carPoolingService.cars().collectList().block());
 		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId1)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
 		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId2)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
 		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId3)).expectNextMatches(car -> expectedCar.getId() == car.getId()).verifyComplete();
 		// FIFO - The last one to request journey is the one that is not assigned
 		StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId4)).verifyComplete();
 		StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(unassignedGroupId4)).verifyComplete();
-		log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
-		log.info("then cars: {}", carPoolingService.cars().collectList().block());
 	}
 
 	private boolean groupReassigned(int unassignedGroupId) {
@@ -226,11 +224,15 @@ public class CarPoolingServiceTest {
 	@Test
 	public void GivenGroupWaiting_WhenDropoff_ThenEmptyResult_AndWaiting() {
 		GroupOfPeopleDTO group = new GroupOfPeopleDTO(1, 2);
-		Mono<CarEntity> given = carPoolingService.journey(group);
+		carPoolingService.journey(group).block();
+		log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+		log.info("given cars: {}", carPoolingService.cars().collectList().block());
 
-		Mono<CarEntity> result = given.then(carPoolingService.dropoff(group.getId()));
+		Mono<CarEntity> result = carPoolingService.dropoff(group.getId());
 
 		StepVerifier.create(result).verifyComplete();
+		log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+		log.info("then cars: {}", carPoolingService.cars().collectList().block());
 		// Still in waiting groups. It is not removed by carPoolingService.dropoff, but in the controller
 		StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(group.getId())).verifyComplete();
 	}

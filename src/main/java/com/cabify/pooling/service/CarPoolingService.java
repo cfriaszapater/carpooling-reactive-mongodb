@@ -5,16 +5,13 @@ import com.cabify.pooling.dto.GroupOfPeopleDTO;
 import com.cabify.pooling.entity.CarEntity;
 import com.cabify.pooling.entity.GroupOfPeopleEntity;
 import com.cabify.pooling.repository.CarsRepository;
-import com.cabify.pooling.repository.GroupsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Publisher;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -24,19 +21,18 @@ import java.util.List;
 public class CarPoolingService {
 
 	private final CarsRepository carsRepository;
-	private final GroupsRepository waitingGroupsRepository;
 
 	public Flux<CarEntity> createCars(@Valid List<CarDTO> carDtos) {
 		// Clear all info and store cars
 		Flux<CarEntity> carEntities = Flux
-				.fromStream(carDtos.stream().map(requestedCar -> new CarEntity(requestedCar.getId(), requestedCar.getSeats(), null)));
-		return carsRepository.deleteAll().thenMany(carsRepository.saveAll(carEntities));
+				.fromStream(carDtos.stream().map(requestedCar -> CarEntity.builder().id(requestedCar.getId()).seatsAvailable(requestedCar.getSeats()).build()));
+		return carsRepository.initWith(carEntities);
 	}
 
 	public Mono<CarEntity> journey(@Valid GroupOfPeopleDTO groupDto) {
-		GroupOfPeopleEntity group = new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople(), new Date(), null);
+		GroupOfPeopleEntity group = new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople(), new Date(), false);
 		return carsRepository.assignToCarWithAvailableSeats(group)
-				.switchIfEmpty(waitingGroupsRepository.save(group).then(Mono.empty()));
+				.switchIfEmpty(carsRepository.putInWaitingQueue(group).then(Mono.empty()));
 	}
 
 	/**
@@ -50,39 +46,27 @@ public class CarPoolingService {
 	}
 
 	private void reAssignWaitingGroups() {
+		// TODO For concurrency: a) mark reassigningSince + select where reassigningSince = null + async crashRecovery sets reassigningSince = null, or b) findAndRemove + transaction
+
 		// Thread-safety: sets reassigningSince + select where reassigningSince = null.
 		// XXX Additionally, in case process crashed while reassigning, async crashRecoverer would set reassigningSince = null to those that have been reassigningSince more than a max timeout
 
-		// Count waiting groups, then do as much reassignations
-		Flux<? extends Integer> iterations = waitingGroupsRepository.count().flatMapMany(this::iterationsFlux)
-				.log("iterations");
-		Flux<GroupOfPeopleEntity> reassigningGroups = iterations.flatMap(i -> waitingGroupsRepository.findOneAndSetReassigning())
+		Flux<GroupOfPeopleEntity> reassigningGroups = carsRepository.findWaitingAndSetReassigning()
 				.log("reassigningGroups");
-		Flux<GroupOfPeopleEntity> reassignedOrReassigningGroups = reassigningGroups
+		Flux<GroupOfPeopleEntity> reassignedGroups = reassigningGroups
 				// concatMap to assign in order
 				.concatMap(group ->
 						carsRepository
 								.assignToCarWithAvailableSeats(group)
-								// reassigned: set reassigningSince = null
-								.flatMap(car -> Mono.just(group.toBuilder().reassigningSince(null).build()))
-								.switchIfEmpty(Mono.just(group))
+								.flatMap(car -> Mono.just(group))
 				)
-				.log("reassignedOrReassigningGroups");
-		Flux<GroupOfPeopleEntity> remainingWaitingGroups = reassignedOrReassigningGroups
-				.flatMap(group -> group.getReassigningSince() == null
-						? waitingGroupsRepository.delete(group).then(Mono.empty())
-						: waitingGroupsRepository.findByIdAndUnsetReassigning(group.getId()));
-		remainingWaitingGroups
-				.log("remainingWaitingGroups")
-				.subscribe();
-	}
-
-	private Publisher<? extends Integer> iterationsFlux(Long n) {
-		ArrayList<Integer> iterations = new ArrayList<>();
-		for (int i = 0; i < n; i++) {
-			iterations.add(i);
-		}
-		return Flux.fromIterable(iterations);
+				.log("reassignedGroups");
+		reassignedGroups
+				.flatMap(group -> carsRepository.findWaitingReassigningByIdAndDelete(group))
+				.log("waitingGroupsAfterDelete")
+				.then(carsRepository.findReassigningAndUnset())
+				.subscribe(g -> {
+				}, err -> log.error(err.getMessage(), err));
 	}
 
 	/**
@@ -104,15 +88,15 @@ public class CarPoolingService {
 	}
 
 	public Mono<GroupOfPeopleEntity> findWaitingGroup(Integer id) {
-		return waitingGroupsRepository.findById(id);
+		return carsRepository.findWaitingById(id);
 	}
 
-	public Mono<Void> removeWaitingGroup(Integer id) {
-		return waitingGroupsRepository.deleteById(id);
+	public Mono<CarEntity> removeWaitingGroup(Integer id) {
+		return carsRepository.deleteWaitingById(id);
 	}
 
 	Flux<GroupOfPeopleEntity> waitingGroups() {
-		return waitingGroupsRepository.findAll();
+		return carsRepository.findAllWaiting();
 	}
 
 	Flux<CarEntity> cars() {
