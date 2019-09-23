@@ -188,7 +188,7 @@ public class CarPoolingApplicationTests {
 		ResponseSpec result = postLocate(groupId);
 
 		result.expectStatus().isNotFound();
-		StepVerifier.create(carsRepository.findAllWaiting()).verifyComplete();
+		StepVerifier.create(carsRepository.findAllGroupsWaiting()).verifyComplete();
 	}
 
 }

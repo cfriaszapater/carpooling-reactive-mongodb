@@ -30,7 +30,7 @@ public class CarPoolingService {
 	}
 
 	public Mono<CarEntity> journey(@Valid GroupOfPeopleDTO groupDto) {
-		GroupOfPeopleEntity group = new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople(), new Date(), false);
+		GroupOfPeopleEntity group = new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople(), new Date());
 		return carsRepository.assignToCarWithAvailableSeats(group)
 				.switchIfEmpty(carsRepository.putInWaitingQueue(group).then(Mono.empty()));
 	}
@@ -62,7 +62,7 @@ public class CarPoolingService {
 				)
 				.log("reassignedGroups");
 		reassignedGroups
-				.flatMap(group -> carsRepository.findWaitingReassigningByIdAndDelete(group))
+				.flatMap(carsRepository::findWaitingReassigningByIdAndDelete)
 				.log("waitingGroupsAfterDelete")
 				.then(carsRepository.findReassigningAndUnset())
 				.subscribe(g -> {
@@ -96,10 +96,10 @@ public class CarPoolingService {
 	}
 
 	Flux<GroupOfPeopleEntity> waitingGroups() {
-		return carsRepository.findAllWaiting();
+		return carsRepository.findAllGroupsWaiting();
 	}
 
 	Flux<CarEntity> cars() {
-		return carsRepository.findAll();
+		return carsRepository.findAllNotWaiting();
 	}
 }

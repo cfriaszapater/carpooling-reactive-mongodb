@@ -39,20 +39,20 @@ public class CarPoolingServiceConcurrentTest {
 
 	@Test
 	public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_ThenCarAssignedToOnlyOne() throws InterruptedException {
-		final int numberOfIterations = 1000;
+		final int numberOfIterations = 10;
 		for (int i = 0; i < numberOfIterations; i++) {
-			log.trace("iteration {} starts...", i);
+			log.info("iteration {} starts...", i);
 			carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 4))).blockLast();
 
 			concurrentPostJourneys();
 
 			thenAssignedGroups(1);
-			log.trace("...iteration {} ends", i);
+			log.info("...iteration {} ends", i);
 		}
 	}
 
 	private void thenAssignedGroups(int expectedGroupsAssigned) {
-		await().atMost(1, SECONDS).ignoreExceptions().pollInterval(Duration.ofMillis(500)).until(() -> {
+		await().atMost(1, SECONDS).ignoreExceptions().until(() -> {
 			StepVerifier.create(
 					carPoolingService.cars()
 							.map(car -> car.getGroups().size())
@@ -64,15 +64,15 @@ public class CarPoolingServiceConcurrentTest {
 
 	@Test
 	public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_AndDropoff_ThenCarUnassigned() throws InterruptedException {
-		final int numberOfIterations = 100;
+		final int numberOfIterations = 10;
 		for (int i = 0; i < numberOfIterations; i++) {
-			log.trace("iteration {} starts...", i);
+			log.info("iteration {} starts...", i);
 			carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 4))).blockLast();
 
 			concurrentPostJourneysAndDropoff();
 
 			thenAssignedGroups(0);
-			log.trace("...iteration {} ends", i);
+			log.info("...iteration {} ends", i);
 		}
 	}
 

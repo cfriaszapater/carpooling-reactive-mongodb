@@ -16,5 +16,4 @@ public class GroupOfPeopleEntity {
 	private final Integer id;
 	private final Integer people;
 	private final Date insertDate;
-	private final boolean reassigned;
 }

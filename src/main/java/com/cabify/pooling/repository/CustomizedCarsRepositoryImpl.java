@@ -145,7 +145,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 	}
 
 	@Override
-	public Flux<GroupOfPeopleEntity> findAllWaiting() {
+	public Flux<GroupOfPeopleEntity> findAllGroupsWaiting() {
 		return waitingGroups();
 	}
 
@@ -153,4 +153,10 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 		return mongoOperations.findOne(queryWaitingGroups(), CarEntity.class)
 				.flatMapMany(car -> Flux.fromIterable(car.getGroups()));
 	}
+
+	@Override
+	public Flux<CarEntity> findAllNotWaiting() {
+		return mongoOperations.find(Query.query(Criteria.where("id").ne(WAITING_GROUPS)), CarEntity.class);
+	}
+
 }

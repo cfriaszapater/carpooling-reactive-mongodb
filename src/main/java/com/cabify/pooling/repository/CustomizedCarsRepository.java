@@ -28,5 +28,7 @@ public interface CustomizedCarsRepository {
 
 	Mono<CarEntity> deleteWaitingById(Integer groupId);
 
-	Flux<GroupOfPeopleEntity> findAllWaiting();
+	Flux<GroupOfPeopleEntity> findAllGroupsWaiting();
+
+	Flux<CarEntity> findAllNotWaiting();
 }
