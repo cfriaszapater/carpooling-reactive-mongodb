@@ -136,11 +136,11 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	@Override
 	public Mono<CarEntity> deleteWaitingById(Integer groupId) {
-		Mono<GroupOfPeopleEntity> groupToRemove = locateGroupById(groupId);
+		Mono<GroupOfPeopleEntity> groupToRemove = findWaitingById(groupId);
 
 		return groupToRemove.flatMap(group -> {
 			Update update = new Update().pull("groups", group);
-			return mongoOperations.findAndModify(queryByGroupId(groupId), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+			return mongoOperations.findAndModify(queryWaitingGroups(), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
 		});
 	}
 
