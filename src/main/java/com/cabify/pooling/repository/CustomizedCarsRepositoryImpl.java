@@ -73,7 +73,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	@Override
 	public Mono<CarEntity> putInWaitingQueue(GroupOfPeopleEntity group) {
-		Update update = new Update().push("groups").value(group);
+		Update update = new Update().addToSet("groups").value(group);
 		return mongoOperations.findAndModify(queryWaitingGroups(), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
 	}
 
@@ -170,8 +170,11 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 		Update remove = new Update().pull("groups", waitingGroup);
 		return mongoOperations.inTransaction()
 				.execute(action ->
-						action.findAndModify(queryWaitingGroup(waitingGroup.getId()), remove, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-								.flatMap(car -> action.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class))
+						action.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class)
+								.log("reassigning-waiting group" + waitingGroup.getId())
+								.flatMap(car -> action.findAndModify(queryWaitingGroup(waitingGroup.getId()), remove, new FindAndModifyOptions().returnNew(true), CarEntity.class)
+									.switchIfEmpty(Mono.error(new RuntimeException("Waiting group not found on reassigning it, cancelling transaction"))))
+								.log("reassigned-waiting group" + waitingGroup.getId())
 								.flatMap(car -> Mono.just(waitingGroup))
 				)
 //				.onErrorResume(e -> {

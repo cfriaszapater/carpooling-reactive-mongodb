@@ -60,7 +60,7 @@ public class CarPoolingService {
 				.concatMap(carsRepository::reassign)
 				.log("after_reassign")
 				.retryBackoff(3, Duration.ofMillis(100))
-				.subscribe(g -> log.info("reassigned group {}", g), err -> log.error(err.getMessage(), err));
+				.subscribe(g -> log.info("reassigned group {}", g), err -> log.warn(err.getMessage(), err));
 	}
 
 	/**
