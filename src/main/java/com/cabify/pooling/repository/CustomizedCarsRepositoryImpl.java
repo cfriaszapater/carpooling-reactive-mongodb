@@ -185,7 +185,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 	}
 
 	@Override
-	public Flux<CarEntity> dropoff(Integer groupId) {
+	public Mono<CarEntity> dropoff(Integer groupId) {
 		Mono<GroupOfPeopleEntity> groupToRemove = findGroupById(groupId);
 
 //		return deleteWaitingById(groupId)
@@ -193,8 +193,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 //				.switchIfEmpty(removeGroupFromCarAndFreeSeats(groupId))
 //				.log("after_removeGroupFromCarAndFreeSeats of group" + groupId)
 //				.switchIfEmpty(Mono.error(new RuntimeException("Dropoff did not find group" + groupId)))
-		return mongoOperations.inTransaction()
-				.execute(action -> groupToRemove.flatMap(group -> {
+		return groupToRemove.flatMap(group -> {
 							Update leaveWaitingQueue = new Update().pull("groups", group);
 							Update leaveCar = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
 							return mongoOperations.findAndModify(queryWaitingGroup(groupId), leaveWaitingQueue, new FindAndModifyOptions().returnNew(true), CarEntity.class)
@@ -204,7 +203,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 													.log("after_leaveCar of group" + group.getId())
 									);
 						})
-				);
+				;
 	}
 
 	private Query queryWaitingGroup(Integer waitingGroupId) {

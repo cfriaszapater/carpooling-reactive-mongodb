@@ -45,8 +45,7 @@ public class CarPoolingService {
 	 */
 	public Mono<CarEntity> dropoff(Integer groupId) {
 		Mono<CarEntity> droppedOff = carsRepository.dropoff(groupId)
-				.log("after_dropoff of group" + groupId)
-				.next();
+				.log("after_dropoff of group" + groupId);
 
 		// Fire asynchronous reassign (to start after droppedOff stream is emitted)
 		return droppedOff.doOnSuccess(car -> reAssignWaitingGroups());

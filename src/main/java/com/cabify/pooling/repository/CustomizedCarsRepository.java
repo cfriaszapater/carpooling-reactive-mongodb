@@ -34,5 +34,5 @@ public interface CustomizedCarsRepository {
 
 	Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity group);
 
-	Flux<CarEntity> dropoff(Integer groupId);
+	Mono<CarEntity> dropoff(Integer groupId);
 }
