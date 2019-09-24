@@ -95,6 +95,8 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	@Override
 	public Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity waitingGroup) {
+		// Thread-safety: optimistic locking with transaction, does rollback in case of failure
+
 		int people = waitingGroup.getPeople();
 		Update update = new Update()
 				.inc(SEATS_AVAILABLE, -people)
@@ -104,10 +106,8 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 		return mongoOperations.inTransaction()
 				.execute(action ->
 						action.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-								.log("reassigning-waiting group" + waitingGroup.getId())
 								.flatMap(car -> action.findAndModify(queryWaitingGroup(waitingGroup.getId()), remove, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-									.switchIfEmpty(Mono.error(new RuntimeException("Waiting group not found on reassigning it, cancelling transaction"))))
-								.log("reassigned-waiting group" + waitingGroup.getId())
+										.switchIfEmpty(Mono.error(new RuntimeException("Waiting group not found on reassigning it, rolling back transaction"))))
 								.flatMap(car -> Mono.just(waitingGroup))
 				);
 	}
@@ -117,16 +117,13 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 		Mono<GroupOfPeopleEntity> groupToRemove = findGroupById(groupId);
 
 		return groupToRemove.flatMap(group -> {
-							Update leaveWaitingQueue = new Update().pull("groups", group);
-							Update leaveCar = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
-							return mongoOperations.findAndModify(queryWaitingGroup(groupId), leaveWaitingQueue, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-									.log("after_leaveWaiting of group" + group.getId())
-									.switchIfEmpty(
-											mongoOperations.findAndModify(queryByGroupId(groupId), leaveCar, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-													.log("after_leaveCar of group" + group.getId())
-									);
-						})
-				;
+			Update leaveWaitingQueue = new Update().pull("groups", group);
+			Update leaveCar = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
+			return mongoOperations.findAndModify(queryWaitingGroup(groupId), leaveWaitingQueue, new FindAndModifyOptions().returnNew(true), CarEntity.class)
+					.switchIfEmpty(
+							mongoOperations.findAndModify(queryByGroupId(groupId), leaveCar, new FindAndModifyOptions().returnNew(true), CarEntity.class)
+					);
+		});
 	}
 
 	private Query queryWaitingGroup(Integer waitingGroupId) {

@@ -32,19 +32,14 @@ public class CarPoolingService {
 	public Mono<CarEntity> journey(@Valid GroupOfPeopleDTO groupDto) {
 		GroupOfPeopleEntity group = new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople(), new Date());
 		return carsRepository.assignToCarWithAvailableSeats(group)
-				.log("assignToCarWithAvailableSeats of group" + group.getId())
-				.switchIfEmpty(carsRepository.putInWaitingQueue(group)
-						.log("putInWaitingQueue of group" + group.getId())
-				)
-				;
+				.switchIfEmpty(carsRepository.putInWaitingQueue(group));
 	}
 
 	/**
 	 * @return car if dropped off (group was assigned to car), empty otherwise.
 	 */
 	public Mono<CarEntity> dropoff(Integer groupId) {
-		Mono<CarEntity> droppedOff = carsRepository.dropoff(groupId)
-				.log("after_dropoff of group" + groupId);
+		Mono<CarEntity> droppedOff = carsRepository.dropoff(groupId);
 
 		// Fire asynchronous reassign (to start after droppedOff stream is emitted)
 		return droppedOff.doOnSuccess(car -> reAssignWaitingGroups());
@@ -56,8 +51,7 @@ public class CarPoolingService {
 		carsRepository.findAllGroupsWaiting()
 				// concatMap to preserve order
 				.concatMap(carsRepository::reassign)
-				.log("after_reassign")
-				.subscribe(g -> log.info("reassigned group {}", g), err -> log.warn(err.getMessage(), err));
+				.subscribe(g -> log.debug("reassigned group {}", g), err -> log.debug(err.getMessage(), err));
 	}
 
 	/**
