@@ -4,7 +4,6 @@ import com.cabify.pooling.dto.CarDTO;
 import com.cabify.pooling.dto.GroupOfPeopleDTO;
 import com.cabify.pooling.dto.GroupOfPeopleForm;
 import com.cabify.pooling.entity.CarEntity;
-import com.cabify.pooling.exception.GroupAlreadyExistsException;
 import com.cabify.pooling.service.CarPoolingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -36,7 +35,7 @@ public class CarPoolingController {
 	}
 
 	@PostMapping(path = "/journey", consumes = MediaType.APPLICATION_JSON_VALUE)
-	public Mono<CarEntity> postJourney(@RequestBody @Valid GroupOfPeopleDTO group) throws GroupAlreadyExistsException {
+	public Mono<CarEntity> postJourney(@RequestBody @Valid GroupOfPeopleDTO group) {
 		return carPoolingService.journey(group);
 	}
 
@@ -46,13 +45,13 @@ public class CarPoolingController {
 
 		return carPoolingService.dropoff(id)
 				.map(car -> {
-					if (car.getId() != WAITING_GROUPS) {
+					if (!WAITING_GROUPS.equals(car.getId())) {
 						return new ResponseEntity<Void>(HttpStatus.OK);
 					} else {
 						return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
 					}
 				})
-				.defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
+				.defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
 	}
 
 	@PostMapping(path = "/locate", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
@@ -63,6 +62,6 @@ public class CarPoolingController {
 				.map(car -> ResponseEntity.ok(new CarDTO(car.getId(), car.getSeatsAvailable())))
 				.switchIfEmpty(carPoolingService.findWaitingGroup(groupId)
 						.map(g -> new ResponseEntity<CarDTO>(HttpStatus.NO_CONTENT))
-						.defaultIfEmpty(new ResponseEntity<CarDTO>(HttpStatus.NOT_FOUND)));
+						.defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND)));
 	}
 }

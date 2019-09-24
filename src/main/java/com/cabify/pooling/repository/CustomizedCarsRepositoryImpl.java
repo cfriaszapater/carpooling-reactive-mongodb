@@ -13,9 +13,6 @@ import org.springframework.data.mongodb.core.query.Update;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-import java.util.Date;
-
 import static com.cabify.pooling.repository.CarsRepository.WAITING_GROUPS;
 import static org.springframework.data.domain.Sort.Order.asc;
 import static org.springframework.data.domain.Sort.by;
@@ -40,16 +37,6 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
 	private Query queryBySeatsAvailable(int people) {
 		return query(Criteria.where(SEATS_AVAILABLE).gte(people)).with(by(asc(SEATS_AVAILABLE)));
-	}
-
-	@Override
-	public Mono<CarEntity> removeGroupFromCarAndFreeSeats(Integer groupId) {
-		Mono<GroupOfPeopleEntity> groupToRemove = locateGroupById(groupId);
-
-		return groupToRemove.flatMap(group -> {
-			Update update = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
-			return mongoOperations.findAndModify(queryByGroupId(groupId), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
-		});
 	}
 
 	private Query queryByGroupId(Integer groupId) {
@@ -84,66 +71,11 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 	}
 
 	@Override
-	public Flux<GroupOfPeopleEntity> findWaitingAndSetReassigning() {
-		Query waitingNotReassigning = query(
-				Criteria.where("id").is(WAITING_GROUPS)
-						.and("reassigningSince").is(null));
-		Update setReassigningSince = new Update().set("reassigningSince", new Date());
-		return mongoOperations
-				.findAndModify(waitingNotReassigning, setReassigningSince, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-				.flatMapMany(car -> Flux.fromIterable(car.getGroups()));
-	}
-
-	@Override
-	public Mono<CarEntity> findReassigningAndUnset() {
-		Query reassigning = query(
-				Criteria.where("id").is(WAITING_GROUPS)
-						.and("reassigningSince").ne(null));
-		Update unsetReassigningSince = new Update().set("reassigningSince", null);
-		return mongoOperations
-				.findAndModify(reassigning, unsetReassigningSince, new FindAndModifyOptions().returnNew(true), CarEntity.class);
-	}
-
-	@Override
-	public Mono<CarEntity> findWaitingReassigningByIdAndDelete(GroupOfPeopleEntity group) {
-		Update removeGroup = new Update()
-				.pull("groups", group);
-		return mongoOperations
-				.findAndModify(queryByIdReassigning(group), removeGroup, new FindAndModifyOptions().returnNew(true), CarEntity.class);
-	}
-
-	private Query queryByIdReassigning(GroupOfPeopleEntity group) {
-		return query(Criteria
-				.where("id").is(WAITING_GROUPS)
-				.and("reassigningSince").ne(null)
-				.and("groups.id").is(group.getId()));
-	}
-
-	@Override
-	public Mono<CarEntity> findWaitingReassigningByIdAndUnset(GroupOfPeopleEntity group) {
-		Update unsetReassigning = new Update()
-				.set("reassigning", false);
-		return mongoOperations
-				.findAndModify(queryByIdReassigning(group), unsetReassigning, new FindAndModifyOptions().returnNew(true), CarEntity.class);
-	}
-
-	@Override
 	public Mono<GroupOfPeopleEntity> findWaitingById(Integer groupId) {
 		return waitingGroups()
 				.filter(group -> group.getId().equals(groupId))
 				.next()
 				;
-	}
-
-	@Override
-	public Mono<CarEntity> deleteWaitingById(Integer groupId) {
-		Mono<GroupOfPeopleEntity> groupToRemove = findWaitingById(groupId);
-
-		return groupToRemove.flatMap(group -> {
-			Update update = new Update().pull("groups", group);
-			return mongoOperations.findAndModify(queryWaitingGroup(groupId), update, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-					.log("after_deleteWaitingById of group" + group.getId());
-		});
 	}
 
 	@Override
@@ -177,23 +109,13 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 									.switchIfEmpty(Mono.error(new RuntimeException("Waiting group not found on reassigning it, cancelling transaction"))))
 								.log("reassigned-waiting group" + waitingGroup.getId())
 								.flatMap(car -> Mono.just(waitingGroup))
-				)
-//				.onErrorResume(e -> {
-//					log.warn(e.getMessage(), e);
-//					return Mono.empty();
-//				})
-				;
+				);
 	}
 
 	@Override
 	public Mono<CarEntity> dropoff(Integer groupId) {
 		Mono<GroupOfPeopleEntity> groupToRemove = findGroupById(groupId);
 
-//		return deleteWaitingById(groupId)
-//				.log("after_deleteWaitingById of group" + groupId)
-//				.switchIfEmpty(removeGroupFromCarAndFreeSeats(groupId))
-//				.log("after_removeGroupFromCarAndFreeSeats of group" + groupId)
-//				.switchIfEmpty(Mono.error(new RuntimeException("Dropoff did not find group" + groupId)))
 		return groupToRemove.flatMap(group -> {
 							Update leaveWaitingQueue = new Update().pull("groups", group);
 							Update leaveCar = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);

@@ -142,7 +142,7 @@ public class CarPoolingServiceTest {
 
 		Mono<CarEntity> result = given.then(carPoolingService.dropoff(group.getId()));
 
-		StepVerifier.create(result).expectNextMatches(car -> car.getId() == CarsRepository.WAITING_GROUPS).verifyComplete();
+		StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_GROUPS)).verifyComplete();
 	}
 
 	@Test
@@ -161,7 +161,7 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenGroupWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassigned() throws InterruptedException {
+	public void GivenGroupWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassigned() {
 		CarDTO expectedCar = new CarDTO(randomId(), 6);
 		int assignedGroupId = 1;
 		int unassignedGroupId = 2;
@@ -234,7 +234,7 @@ public class CarPoolingServiceTest {
 
 		Mono<CarEntity> result = carPoolingService.dropoff(group.getId());
 
-		StepVerifier.create(result).expectNextMatches(car -> car.getId() == CarsRepository.WAITING_GROUPS).verifyComplete();
+		StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_GROUPS)).verifyComplete();
 		logCarsAndWaitingGroups();
 		StepVerifier.create(carPoolingService.waitingGroups()).verifyComplete();
 	}

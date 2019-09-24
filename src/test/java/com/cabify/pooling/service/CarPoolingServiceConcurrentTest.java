@@ -13,7 +13,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +52,7 @@ public class CarPoolingServiceConcurrentTest {
 		}
 	}
 
+	@SuppressWarnings("SameReturnValue")
 	private void thenAssignedGroups(int expectedGroupsAssigned) {
 		await().atMost(1, SECONDS).ignoreExceptions().until(() -> {
 			logCarsAndWaitingGroups();

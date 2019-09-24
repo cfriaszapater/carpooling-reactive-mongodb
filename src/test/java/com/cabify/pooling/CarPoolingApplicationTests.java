@@ -41,62 +41,62 @@ public class CarPoolingApplicationTests {
 	}
 
 	@Test
-	public void WhenGetStatus_ThenOk() throws Exception {
+	public void WhenGetStatus_ThenOk() {
 		ResponseSpec result = webClient.get().uri("http://localhost/status").exchange();
 		result.expectStatus().isOk();
 	}
 
 	@Test
-	public void WhenPutCars_ThenOk() throws Exception {
+	public void WhenPutCars_ThenOk() {
 		ResponseSpec result = putCars46();
 
 		result.expectStatus().isOk();
 	}
 
-	private ResponseSpec putCars46() throws Exception {
+	private ResponseSpec putCars46() {
 		return webClient.put().uri("http://localhost/cars").contentType(MediaType.APPLICATION_JSON)
 				.syncBody(FileUtil.loadFile("put-cars-46.ok.json")).exchange();
 	}
 
 	@Test
-	public void WhenPutCarsBadFormat_Then400BadRequest() throws Exception {
+	public void WhenPutCarsBadFormat_Then400BadRequest() {
 		webClient.put().uri("http://localhost/cars").contentType(MediaType.APPLICATION_JSON)
 				.syncBody(FileUtil.loadFile("put-cars.bad-request.json")).exchange().expectStatus().isBadRequest();
 	}
 
 	@Test
-	public void WhenPostJourney_ThenOk() throws Exception {
+	public void WhenPostJourney_ThenOk() {
 		ResponseSpec result = postJourney4();
 
 		result.expectStatus().isOk();
 	}
 
-	private ResponseSpec postJourney4() throws Exception {
+	private ResponseSpec postJourney4() {
 		return webClient.post().uri("http://localhost/journey").contentType(MediaType.APPLICATION_JSON)
 				.syncBody(FileUtil.loadFile("post-journey-4.ok.json")).exchange();
 	}
 
 	@Test
-	public void WhenPostJourneyBadFormat_Then400BadRequest() throws Exception {
+	public void WhenPostJourneyBadFormat_Then400BadRequest() {
 		webClient.post().uri("http://localhost/journey").contentType(MediaType.APPLICATION_JSON)
 				.syncBody(FileUtil.loadFile("post-journey.bad-request.json")).exchange().expectStatus().isBadRequest();
 	}
 
 	@Test
-	public void WhenPostDropoff_Then404() throws Exception {
+	public void WhenPostDropoff_Then404() {
 		int groupId = 13;
 		ResponseSpec result = postDropoff(groupId);
 
 		result.expectStatus().isNotFound();
 	}
 
-	private ResponseSpec postDropoff(int groupId) throws Exception {
+	private ResponseSpec postDropoff(int groupId) {
 		return webClient.post().uri("http://localhost/dropoff").contentType(MediaType.APPLICATION_FORM_URLENCODED)
 				.syncBody("ID=" + groupId).exchange();
 	}
 
 	@Test
-	public void GivenGroupWaiting_WhenPostDropoff_ThenRemovedFromWaitingGroups() throws Exception {
+	public void GivenGroupWaiting_WhenPostDropoff_ThenRemovedFromWaitingGroups() {
 		postJourney4().expectStatus().isOk();
 
 		int groupId = 1;
@@ -106,7 +106,7 @@ public class CarPoolingApplicationTests {
 	}
 
 	@Test
-	public void GivenGroupAssigned_WhenPostDropoff_ThenOk() throws Exception {
+	public void GivenGroupAssigned_WhenPostDropoff_ThenOk() {
 		putCars46().expectStatus().isOk();
 		postJourney4().expectStatus().isOk();
 
@@ -117,25 +117,25 @@ public class CarPoolingApplicationTests {
 	}
 
 	@Test
-	public void WhenPostDropoffBadFormat_Then400() throws Exception {
+	public void WhenPostDropoffBadFormat_Then400() {
 		webClient.post().uri("http://localhost/dropoff").contentType(MediaType.APPLICATION_FORM_URLENCODED)
 				.syncBody("wrong-body").exchange().expectStatus().isBadRequest();
 	}
 
 	@Test
-	public void WhenPostLocate_Then404() throws Exception {
+	public void WhenPostLocate_Then404() {
 		ResponseSpec result = postLocate(1);
 
 		result.expectStatus().isNotFound();
 	}
 
-	private ResponseSpec postLocate(Integer groupId) throws Exception {
+	private ResponseSpec postLocate(Integer groupId) {
 		return webClient.post().uri("http://localhost/locate").contentType(MediaType.APPLICATION_FORM_URLENCODED)
 				.syncBody("ID=" + groupId).exchange();
 	}
 
 	@Test
-	public void GivenGroupAssignedToCar_WhenPostLocate_ThenCar_AndAvailableSeatsReduced() throws Exception {
+	public void GivenGroupAssignedToCar_WhenPostLocate_ThenCar_AndAvailableSeatsReduced() {
 		putCars46();
 		postJourney4();
 
@@ -149,7 +149,7 @@ public class CarPoolingApplicationTests {
 	}
 
 	@Test
-	public void GivenGroupWaiting_WhenPostLocate_Then204() throws Exception {
+	public void GivenGroupWaiting_WhenPostLocate_Then204() {
 		postJourney4();
 
 		ResponseSpec result = postLocate(1);
@@ -158,14 +158,15 @@ public class CarPoolingApplicationTests {
 	}
 
 	@Test
-	public void GivenGroupNotExists_WhenPostLocate_Then404() throws Exception {
+	public void GivenGroupNotExists_WhenPostLocate_Then404() {
 		ResponseSpec result = postLocate(1);
 
 		result.expectStatus().isNotFound();
 	}
 
+	@SuppressWarnings("SameReturnValue")
 	@Test
-	public void GivenGroupWaiting_AndDroppedoff_WhenPostLocateAfterSomeTime_Then404() throws Exception {
+	public void GivenGroupWaiting_AndDroppedoff_WhenPostLocateAfterSomeTime_Then404() {
 		postJourney4();
 		postDropoff(1);
 
@@ -179,7 +180,7 @@ public class CarPoolingApplicationTests {
 	}
 
 	@Test
-	public void GivenGroupAssigned_AndDroppedoff_WhenLocate_Then404() throws Exception {
+	public void GivenGroupAssigned_AndDroppedoff_WhenLocate_Then404() {
 		putCars46();
 		postJourney4();
 		int groupId = 1;
