@@ -9,12 +9,10 @@ import org.springframework.data.mongodb.core.WriteConcernResolver;
 @SpringBootApplication
 public class CarPoolingApplication {
 
+	// TODO possibly not needed
 	@Bean
 	public WriteConcernResolver writeConcernResolver() {
-		return action -> {
-			System.out.println("Using Write Concern of MAJORITY");
-			return WriteConcern.MAJORITY;
-		};
+		return action -> WriteConcern.MAJORITY;
 	}
 
 	public static void main(String[] args) {
