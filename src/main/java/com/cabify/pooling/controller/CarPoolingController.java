@@ -17,6 +17,8 @@ import reactor.core.publisher.Mono;
 import javax.validation.Valid;
 import java.util.List;
 
+import static com.cabify.pooling.repository.CarsRepository.WAITING_GROUPS;
+
 @RestController
 @RequiredArgsConstructor
 public class CarPoolingController {
@@ -42,14 +44,15 @@ public class CarPoolingController {
 	public Mono<ResponseEntity<Void>> postDropoff(@Valid GroupOfPeopleForm group) {
 		Integer id = group.getID();
 
-		Mono<ResponseEntity<Void>> findAndRemoveFromWaitingGroups = carPoolingService.findWaitingGroup(id)
-				.doOnNext(g -> carPoolingService.removeWaitingGroup(id).subscribe())
-				.map(v -> new ResponseEntity<Void>(HttpStatus.NO_CONTENT))
-				.defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
-
 		return carPoolingService.dropoff(id)
-				.map(car -> new ResponseEntity<Void>(HttpStatus.OK))
-				.switchIfEmpty(findAndRemoveFromWaitingGroups);
+				.map(car -> {
+					if (car.getId() != WAITING_GROUPS) {
+						return new ResponseEntity<Void>(HttpStatus.OK);
+					} else {
+						return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+					}
+				})
+				.defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND));
 	}
 
 	@PostMapping(path = "/locate", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)

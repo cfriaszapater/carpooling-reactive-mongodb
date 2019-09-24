@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import java.time.Duration;
 import java.util.Date;
 import java.util.List;
 
@@ -32,41 +33,34 @@ public class CarPoolingService {
 	public Mono<CarEntity> journey(@Valid GroupOfPeopleDTO groupDto) {
 		GroupOfPeopleEntity group = new GroupOfPeopleEntity(groupDto.getId(), groupDto.getPeople(), new Date());
 		return carsRepository.assignToCarWithAvailableSeats(group)
-				.switchIfEmpty(carsRepository.putInWaitingQueue(group).then(Mono.empty()));
+				.log("assignToCarWithAvailableSeats of group" + group.getId())
+				.switchIfEmpty(carsRepository.putInWaitingQueue(group)
+						.log("putInWaitingQueue of group" + group.getId())
+				)
+				;
 	}
 
 	/**
 	 * @return car if dropped off (group was assigned to car), empty otherwise.
 	 */
 	public Mono<CarEntity> dropoff(Integer groupId) {
-		Mono<CarEntity> droppedOff = carsRepository.removeGroupFromCarAndFreeSeats(groupId);
+		Mono<CarEntity> droppedOff = carsRepository.dropoff(groupId)
+				.log("after_dropoff of group" + groupId)
+				.next();
 
 		// Fire asynchronous reassign (to start after droppedOff stream is emitted)
 		return droppedOff.doOnSuccess(car -> reAssignWaitingGroups());
 	}
 
 	private void reAssignWaitingGroups() {
-		// TODO For concurrency: a) mark reassigningSince + select where reassigningSince = null + async crashRecovery sets reassigningSince = null, or b) findAndRemove + transaction
+		// Thread-safety: see carsRepository.reassign()
 
-		// Thread-safety: sets reassigningSince + select where reassigningSince = null.
-		// XXX Additionally, in case process crashed while reassigning, async crashRecoverer would set reassigningSince = null to those that have been reassigningSince more than a max timeout
-
-		Flux<GroupOfPeopleEntity> reassigningGroups = carsRepository.findWaitingAndSetReassigning()
-				.log("reassigningGroups");
-		Flux<GroupOfPeopleEntity> reassignedGroups = reassigningGroups
-				// concatMap to assign in order
-				.concatMap(group ->
-						carsRepository
-								.assignToCarWithAvailableSeats(group)
-								.flatMap(car -> Mono.just(group))
-				)
-				.log("reassignedGroups");
-		reassignedGroups
-				.flatMap(carsRepository::findWaitingReassigningByIdAndDelete)
-				.log("waitingGroupsAfterDelete")
-				.then(carsRepository.findReassigningAndUnset())
-				.subscribe(g -> {
-				}, err -> log.error(err.getMessage(), err));
+		carsRepository.findAllGroupsWaiting()
+				// concatMap to preserve order
+				.concatMap(carsRepository::reassign)
+				.log("after_reassign")
+				.retryBackoff(3, Duration.ofMillis(100))
+				.subscribe(g -> log.info("reassigned group {}", g), err -> log.error(err.getMessage(), err));
 	}
 
 	/**
@@ -89,10 +83,6 @@ public class CarPoolingService {
 
 	public Mono<GroupOfPeopleEntity> findWaitingGroup(Integer id) {
 		return carsRepository.findWaitingById(id);
-	}
-
-	public Mono<CarEntity> removeWaitingGroup(Integer id) {
-		return carsRepository.deleteWaitingById(id);
 	}
 
 	Flux<GroupOfPeopleEntity> waitingGroups() {

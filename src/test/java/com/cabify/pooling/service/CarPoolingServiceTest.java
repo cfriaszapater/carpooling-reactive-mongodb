@@ -135,14 +135,14 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenGroupNotAssigned_WhenDropoff_ThenEmptyResult() {
+	public void GivenGroupNotAssigned_WhenDropoff_ThenRemovedFromWaitingGroups() {
 		GroupOfPeopleDTO group = new GroupOfPeopleDTO(2, 6);
 		Mono<CarEntity> given = carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 3)))
 				.then(carPoolingService.journey(group));
 
 		Mono<CarEntity> result = given.then(carPoolingService.dropoff(group.getId()));
 
-		StepVerifier.create(result).verifyComplete();
+		StepVerifier.create(result).expectNextMatches(car -> car.getId() == CarsRepository.WAITING_GROUPS).verifyComplete();
 	}
 
 	@Test
@@ -161,7 +161,7 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenGroupWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassigned() {
+	public void GivenGroupWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassigned() throws InterruptedException {
 		CarDTO expectedCar = new CarDTO(randomId(), 6);
 		int assignedGroupId = 1;
 		int unassignedGroupId = 2;
@@ -222,7 +222,7 @@ public class CarPoolingServiceTest {
 	}
 
 	@Test
-	public void GivenGroupWaiting_WhenDropoff_ThenEmptyResult_AndWaiting() {
+	public void GivenGroupWaiting_WhenDropoff_ThenRemovedFromWaitingGroups() {
 		GroupOfPeopleDTO group = new GroupOfPeopleDTO(1, 2);
 		carPoolingService.journey(group).block();
 		log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
@@ -230,11 +230,10 @@ public class CarPoolingServiceTest {
 
 		Mono<CarEntity> result = carPoolingService.dropoff(group.getId());
 
-		StepVerifier.create(result).verifyComplete();
+		StepVerifier.create(result).expectNextMatches(car -> car.getId() == CarsRepository.WAITING_GROUPS).verifyComplete();
 		log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
 		log.info("then cars: {}", carPoolingService.cars().collectList().block());
-		// Still in waiting groups. It is not removed by carPoolingService.dropoff, but in the controller
-		StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(group.getId())).verifyComplete();
+		StepVerifier.create(carPoolingService.waitingGroups()).verifyComplete();
 	}
 
 }

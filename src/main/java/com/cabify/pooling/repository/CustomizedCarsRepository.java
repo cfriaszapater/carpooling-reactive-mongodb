@@ -14,7 +14,7 @@ public interface CustomizedCarsRepository {
 
 	Mono<CarEntity> locateCarOfGroup(Integer groupId);
 
-	Mono<GroupOfPeopleEntity> putInWaitingQueue(GroupOfPeopleEntity group);
+	Mono<CarEntity> putInWaitingQueue(GroupOfPeopleEntity group);
 
 	Flux<GroupOfPeopleEntity> findWaitingAndSetReassigning();
 
@@ -31,4 +31,8 @@ public interface CustomizedCarsRepository {
 	Flux<GroupOfPeopleEntity> findAllGroupsWaiting();
 
 	Flux<CarEntity> findAllNotWaiting();
+
+	Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity group);
+
+	Flux<CarEntity> dropoff(Integer groupId);
 }

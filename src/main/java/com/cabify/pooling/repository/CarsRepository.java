@@ -12,12 +12,12 @@ public interface CarsRepository extends ReactiveMongoRepository<CarEntity, Integ
 	default Flux<CarEntity> initWith(Flux<CarEntity> carEntities) {
 		return deleteAll()
 				.thenMany(saveAll(waitingGroupsContainer()
-								.concatWith(carEntities)));
+						.concatWith(carEntities)));
 	}
 
 	// A special "car" that holds the waiting groups, to enable modifying it atomically
 	// (see https://docs.mongodb.com/manual/core/transactions/ )
 	private Flux<CarEntity> waitingGroupsContainer() {
-		return Flux.just(new CarEntity(WAITING_GROUPS, 0, Collections.emptyList(), null));
+		return Flux.just(new CarEntity(WAITING_GROUPS, 0, Collections.emptyList(), null, null));
 	}
 }

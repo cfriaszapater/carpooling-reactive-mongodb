@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import reactor.core.publisher.Hooks;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -33,6 +34,7 @@ public class CarPoolingServiceConcurrentTest {
 
 	@Before
 	public void before() {
+		Hooks.onOperatorDebug();
 		carsRepository.deleteAll().block();
 		carPoolingService = new CarPoolingService(carsRepository);
 	}
@@ -53,6 +55,8 @@ public class CarPoolingServiceConcurrentTest {
 
 	private void thenAssignedGroups(int expectedGroupsAssigned) {
 		await().atMost(1, SECONDS).ignoreExceptions().until(() -> {
+			logCarsAndWaitingGroups();
+
 			StepVerifier.create(
 					carPoolingService.cars()
 							.map(car -> car.getGroups().size())
@@ -60,6 +64,11 @@ public class CarPoolingServiceConcurrentTest {
 			).expectNext(expectedGroupsAssigned).verifyComplete();
 			return true;
 		});
+	}
+
+	private void logCarsAndWaitingGroups() {
+		log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+		log.info("then cars: {}", carPoolingService.cars().collectList().block());
 	}
 
 	@Test
@@ -164,7 +173,8 @@ public class CarPoolingServiceConcurrentTest {
 					startGate.await();
 
 					carPoolingService.journey(new GroupOfPeopleDTO(groupId, 4))
-							.then(carPoolingService.dropoff(groupId)).block();
+							.then(carPoolingService.dropoff(groupId))
+							.block();
 
 					finishLine.countDown();
 					log.trace("...{} crossed finish line", groupId);
@@ -178,6 +188,7 @@ public class CarPoolingServiceConcurrentTest {
 		startGate.countDown();
 		boolean allThreadsReachedFinishLine = finishLine.await(5, TimeUnit.SECONDS);
 		if (!allThreadsReachedFinishLine) {
+			logCarsAndWaitingGroups();
 			fail("some concurrent request failed");
 		}
 	}
