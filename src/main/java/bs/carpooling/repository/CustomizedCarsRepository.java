@@ -1,7 +1,7 @@
-package com.cabify.pooling.repository;
+package bs.carpooling.repository;
 
-import com.cabify.pooling.entity.CarEntity;
-import com.cabify.pooling.entity.GroupOfPeopleEntity;
+import bs.carpooling.entity.CarEntity;
+import bs.carpooling.entity.GroupOfPeopleEntity;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

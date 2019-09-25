@@ -1,7 +1,7 @@
-package com.cabify.pooling.repository;
+package bs.carpooling.repository;
 
-import com.cabify.pooling.entity.CarEntity;
-import com.cabify.pooling.entity.GroupOfPeopleEntity;
+import bs.carpooling.entity.CarEntity;
+import bs.carpooling.entity.GroupOfPeopleEntity;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
-import static com.cabify.pooling.repository.CarsRepository.WAITING_GROUPS;
+import static bs.carpooling.repository.CarsRepository.WAITING_GROUPS;
 import static org.springframework.data.domain.Sort.Order.asc;
 import static org.springframework.data.domain.Sort.by;
 import static org.springframework.data.mongodb.core.query.Query.query;

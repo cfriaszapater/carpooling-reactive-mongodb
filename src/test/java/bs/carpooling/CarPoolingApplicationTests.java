@@ -1,7 +1,7 @@
-package com.cabify.pooling;
+package bs.carpooling;
 
-import com.cabify.pooling.repository.CarsRepository;
-import com.cabify.util.FileUtil;
+import bs.carpooling.repository.CarsRepository;
+import bs.util.FileUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

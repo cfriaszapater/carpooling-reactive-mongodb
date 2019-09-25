@@ -1,10 +1,10 @@
-package com.cabify.pooling.service;
+package bs.carpooling.service;
 
-import com.cabify.pooling.dto.CarDTO;
-import com.cabify.pooling.dto.GroupOfPeopleDTO;
-import com.cabify.pooling.entity.CarEntity;
-import com.cabify.pooling.entity.GroupOfPeopleEntity;
-import com.cabify.pooling.repository.CarsRepository;
+import bs.carpooling.entity.CarEntity;
+import bs.carpooling.entity.GroupOfPeopleEntity;
+import bs.carpooling.dto.CarDTO;
+import bs.carpooling.dto.GroupOfPeopleDTO;
+import bs.carpooling.repository.CarsRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Before;
 import org.junit.Test;

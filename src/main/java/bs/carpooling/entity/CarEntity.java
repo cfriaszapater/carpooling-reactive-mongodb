@@ -1,4 +1,4 @@
-package com.cabify.pooling.entity;
+package bs.carpooling.entity;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;

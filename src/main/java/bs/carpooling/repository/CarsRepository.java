@@ -1,6 +1,6 @@
-package com.cabify.pooling.repository;
+package bs.carpooling.repository;
 
-import com.cabify.pooling.entity.CarEntity;
+import bs.carpooling.entity.CarEntity;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import reactor.core.publisher.Flux;
 

@@ -8,7 +8,7 @@
         <version>2.1.8.RELEASE</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
-    <groupId>com.cabify</groupId>
+    <groupId>bs</groupId>
     <artifactId>carpooling-reactive-mongodb</artifactId>
     <version>0.0.0</version>
     <name>carpooling-reactive-mongodb</name>

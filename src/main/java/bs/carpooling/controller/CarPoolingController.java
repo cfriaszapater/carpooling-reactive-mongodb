@@ -1,10 +1,10 @@
-package com.cabify.pooling.controller;
+package bs.carpooling.controller;
 
-import com.cabify.pooling.dto.CarDTO;
-import com.cabify.pooling.dto.GroupOfPeopleDTO;
-import com.cabify.pooling.dto.GroupOfPeopleForm;
-import com.cabify.pooling.entity.CarEntity;
-import com.cabify.pooling.service.CarPoolingService;
+import bs.carpooling.dto.CarDTO;
+import bs.carpooling.dto.GroupOfPeopleDTO;
+import bs.carpooling.dto.GroupOfPeopleForm;
+import bs.carpooling.entity.CarEntity;
+import bs.carpooling.service.CarPoolingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 import javax.validation.Valid;
 import java.util.List;
 
-import static com.cabify.pooling.repository.CarsRepository.WAITING_GROUPS;
+import static bs.carpooling.repository.CarsRepository.WAITING_GROUPS;
 
 @RestController
 @RequiredArgsConstructor

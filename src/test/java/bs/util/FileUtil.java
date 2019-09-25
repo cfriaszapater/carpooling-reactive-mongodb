@@ -1,4 +1,4 @@
-package com.cabify.util;
+package bs.util;
 
 import java.io.IOException;
 import java.nio.file.Files;

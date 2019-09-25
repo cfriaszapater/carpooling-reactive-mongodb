@@ -1,4 +1,4 @@
-package com.cabify.pooling.dto;
+package bs.carpooling.dto;
 
 import lombok.Data;
 
