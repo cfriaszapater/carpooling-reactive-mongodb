@@ -15,12 +15,12 @@ import java.util.List;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Document
 public class CarEntity {
-	@EqualsAndHashCode.Include
-	@Id
-	private Integer id;
-	private Integer seatsAvailable;
-	private List<GroupOfPeopleEntity> groups;
-	private Date reassigningSince;
-	@Version
-	private Long version;
+  @EqualsAndHashCode.Include
+  @Id
+  private Integer id;
+  private Integer seatsAvailable;
+  private List<GroupOfPeopleEntity> groups;
+  private Date reassigningSince;
+  @Version
+  private Long version;
 }

@@ -12,8 +12,8 @@ import java.util.Date;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Builder(toBuilder = true)
 public class GroupOfPeopleEntity {
-	@EqualsAndHashCode.Include
-	private final Integer id;
-	private final Integer people;
-	private final Date insertDate;
+  @EqualsAndHashCode.Include
+  private final Integer id;
+  private final Integer people;
+  private final Date insertDate;
 }

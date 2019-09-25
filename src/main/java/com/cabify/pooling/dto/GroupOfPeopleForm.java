@@ -6,6 +6,6 @@ import javax.validation.constraints.NotNull;
 
 @Data
 public class GroupOfPeopleForm {
-	@NotNull
-	private Integer ID;
+  @NotNull
+  private Integer ID;
 }

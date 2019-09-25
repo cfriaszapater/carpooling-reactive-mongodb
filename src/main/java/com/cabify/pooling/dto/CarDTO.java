@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class CarDTO {
-	private int id;
-	private int seats;
+  private int id;
+  private int seats;
 }

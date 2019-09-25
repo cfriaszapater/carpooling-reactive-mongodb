@@ -6,21 +6,21 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface CustomizedCarsRepository {
-	Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group);
+  Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group);
 
-	Mono<GroupOfPeopleEntity> locateGroupById(Integer groupId);
+  Mono<GroupOfPeopleEntity> locateGroupById(Integer groupId);
 
-	Mono<CarEntity> locateCarOfGroup(Integer groupId);
+  Mono<CarEntity> locateCarOfGroup(Integer groupId);
 
-	Mono<CarEntity> putInWaitingQueue(GroupOfPeopleEntity group);
+  Mono<CarEntity> putInWaitingQueue(GroupOfPeopleEntity group);
 
-	Mono<GroupOfPeopleEntity> findWaitingById(Integer groupId);
+  Mono<GroupOfPeopleEntity> findWaitingById(Integer groupId);
 
-	Flux<GroupOfPeopleEntity> findAllGroupsWaiting();
+  Flux<GroupOfPeopleEntity> findAllGroupsWaiting();
 
-	Flux<CarEntity> findAllNotWaiting();
+  Flux<CarEntity> findAllNotWaiting();
 
-	Flux<GroupOfPeopleEntity> reassignOneWaitingGroup();
+  Flux<GroupOfPeopleEntity> reassignOneWaitingGroup();
 
-	Mono<CarEntity> dropoff(Integer groupId);
+  Mono<CarEntity> dropoff(Integer groupId);
 }
