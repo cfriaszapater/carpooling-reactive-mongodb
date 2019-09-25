@@ -1,6 +1,6 @@
 # carpooling-reactive-mongodb
 
-Playground for reactive spring and mongodb.
+Playground for reactive spring and mongodb, based on an interesting car-pooling challenge I came across.
 
 Uses mongodb transaction functionality that is only available on replica set, so it depends on a running local mongodb instance.
 
