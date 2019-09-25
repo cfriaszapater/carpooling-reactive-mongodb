@@ -61,7 +61,7 @@ public class CarPoolingApplicationTests {
 	@Test
 	public void WhenPutCarsBadFormat_Then400BadRequest() {
 		webClient.put().uri("http://localhost/cars").contentType(MediaType.APPLICATION_JSON)
-				.syncBody(FileUtil.loadFile("put-cars.bad-request.json")).exchange().expectStatus().isBadRequest();
+				.syncBody(FileUtil.loadFile("put-cars.bad-request.nojson")).exchange().expectStatus().isBadRequest();
 	}
 
 	@Test
@@ -79,7 +79,7 @@ public class CarPoolingApplicationTests {
 	@Test
 	public void WhenPostJourneyBadFormat_Then400BadRequest() {
 		webClient.post().uri("http://localhost/journey").contentType(MediaType.APPLICATION_JSON)
-				.syncBody(FileUtil.loadFile("post-journey.bad-request.json")).exchange().expectStatus().isBadRequest();
+				.syncBody(FileUtil.loadFile("post-journey.bad-request.nojson")).exchange().expectStatus().isBadRequest();
 	}
 
 	@Test
