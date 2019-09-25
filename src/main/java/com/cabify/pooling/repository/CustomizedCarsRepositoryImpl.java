@@ -42,12 +42,6 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
     return query(Criteria.where(SEATS_AVAILABLE).gte(people)).with(by(asc(SEATS_AVAILABLE)));
   }
 
-  private Query queryByGroupId(Integer groupId) {
-    return query(Criteria
-      .where("groups.id").is(groupId)
-      .and("id").ne(WAITING_GROUPS));
-  }
-
   @Override
   public Mono<GroupOfPeopleEntity> locateGroupById(Integer groupId) {
     return locateCarOfGroup(groupId)
@@ -60,6 +54,12 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
   @Override
   public Mono<CarEntity> locateCarOfGroup(Integer groupId) {
     return mongoOperations.findOne(queryByGroupId(groupId), CarEntity.class);
+  }
+
+  private Query queryByGroupId(Integer groupId) {
+    return query(Criteria
+      .where("groups.id").is(groupId)
+      .and("id").ne(WAITING_GROUPS));
   }
 
   @Override
@@ -91,11 +91,6 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
       .flatMapMany(car -> Flux.fromIterable(car.getGroups()));
   }
 
-  private Mono<GroupOfPeopleEntity> firstWaitingGroup() {
-    return mongoOperations.findOne(queryWaitingGroups(), CarEntity.class)
-      .flatMap(car -> Mono.justOrEmpty(car.getGroups().stream().findFirst()));
-  }
-
   @Override
   public Flux<CarEntity> findAllNotWaiting() {
     return mongoOperations.find(query(Criteria.where("id").ne(WAITING_GROUPS)), CarEntity.class);
@@ -110,6 +105,11 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
       // retry failed optimistic concurrent executions of reassignOneWaitingGroup
       .retryBackoff(3, Duration.ofMillis(200))
       ;
+  }
+
+  private Mono<GroupOfPeopleEntity> firstWaitingGroup() {
+    return mongoOperations.findOne(queryWaitingGroups(), CarEntity.class)
+      .flatMap(car -> Mono.justOrEmpty(car.getGroups().stream().findFirst()));
   }
 
   private Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity waitingGroup) {
