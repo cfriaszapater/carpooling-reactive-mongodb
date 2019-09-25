@@ -51,13 +51,13 @@ public class CarPoolingServiceConcurrentTest {
   public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_ThenCarAssignedToOnlyOne() throws InterruptedException {
     final int numberOfIterations = 10;
     for (int i = 0; i < numberOfIterations; i++) {
-      log.info("iteration {} starts...", i);
+      log.debug("iteration {} starts...", i);
       carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 4))).blockLast();
 
       concurrentPostJourneys();
 
       thenAssignedGroups(1);
-      log.info("...iteration {} ends", i);
+      log.debug("...iteration {} ends", i);
     }
   }
 
@@ -77,24 +77,24 @@ public class CarPoolingServiceConcurrentTest {
 
   private void logCarsAndWaitingGroups() {
     List<GroupOfPeopleEntity> waitingGroups = carPoolingService.waitingGroups().collectList().block();
-    log.info("waitingGroups ({}): {}", waitingGroups != null ? waitingGroups.size() : 0, waitingGroups);
+    log.debug("waitingGroups ({}): {}", waitingGroups != null ? waitingGroups.size() : 0, waitingGroups);
     List<CarEntity> cars = carPoolingService.cars().collectList().block();
     assert cars != null;
     Optional<Integer> assignedGroups = cars.stream().map(car -> car.getGroups().size()).reduce(Integer::sum);
-    log.info("cars ({} with {} assigned groups): {}", cars.size(), assignedGroups.orElse(0), cars);
+    log.debug("cars ({} with {} assigned groups): {}", cars.size(), assignedGroups.orElse(0), cars);
   }
 
   @Test
   public void GivenCarWith4SeatsAvailable_WhenConcurrentPostJourneysOf4_AndDropoff_ThenCarUnassigned() throws InterruptedException {
     final int numberOfIterations = 10;
     for (int i = 0; i < numberOfIterations; i++) {
-      log.info("iteration {} starts...", i);
+      log.debug("iteration {} starts...", i);
       carPoolingService.createCars(Collections.singletonList(new CarDTO(1, 4))).blockLast();
 
       concurrentPostJourneysAndDropoff();
 
       thenAssignedGroups(0);
-      log.info("...iteration {} ends", i);
+      log.debug("...iteration {} ends", i);
     }
   }
 
@@ -158,7 +158,7 @@ public class CarPoolingServiceConcurrentTest {
   public void GivenCarsAssigned_AndWaitingGroups_WhenConcurrentPostDropoff_ThenWaitingCarsAssignedAsynchronously() throws InterruptedException {
     final int numberOfIterations = 50;
     for (int i = 0; i < numberOfIterations; i++) {
-      log.info("iteration {} starts...", i);
+      log.debug("iteration {} starts...", i);
       List<CarDTO> cars = new ArrayList<>();
       for (int j = 0; j < CONCURRENT_REQUESTS; j++) {
         cars.add(new CarDTO(j, 4));
@@ -166,19 +166,19 @@ public class CarPoolingServiceConcurrentTest {
       }
       carPoolingService.createCars(cars).blockLast();
       List<GroupOfPeopleEntity> createdGroups = concurrentPostJourneys(CONCURRENT_REQUESTS * 2);
-      log.info("createdGroups ({}) = {}", createdGroups.size(), createdGroups);
+      log.debug("createdGroups ({}) = {}", createdGroups.size(), createdGroups);
       List<GroupOfPeopleEntity> assignedGroups = carPoolingService.cars()
         .flatMap(car -> Flux.fromIterable(car.getGroups())).collectList().block();
-      log.info("assignedGroups ({}) = {}", assignedGroups != null ? assignedGroups.size() : 0, assignedGroups);
+      log.debug("assignedGroups ({}) = {}", assignedGroups != null ? assignedGroups.size() : 0, assignedGroups);
       logCarsAndWaitingGroups();
 
       assert assignedGroups != null;
       List<CarEntity> droppedCars = concurrentPostDropoff(assignedGroups);
-      log.info("droppedCars ({}) = {}", droppedCars.size(), droppedCars);
+      log.debug("droppedCars ({}) = {}", droppedCars.size(), droppedCars);
 
       assertEquals(CONCURRENT_REQUESTS, droppedCars.size());
       thenAssignedGroups(CONCURRENT_REQUESTS);
-      log.info("...iteration {} ends", i);
+      log.debug("...iteration {} ends", i);
     }
   }
 

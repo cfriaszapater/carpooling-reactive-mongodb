@@ -169,8 +169,8 @@ public class CarPoolingServiceTest {
       .then(carPoolingService.journey(new GroupOfPeopleDTO(assignedGroupId, 5)))
       .then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId, 6)))
       .block();
-    log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
-    log.info("given cars: {}", carPoolingService.cars().collectList().block());
+    log.debug("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+    log.debug("given cars: {}", carPoolingService.cars().collectList().block());
 
     carPoolingService.dropoff(assignedGroupId).subscribe();
 
@@ -183,7 +183,7 @@ public class CarPoolingServiceTest {
 
   @Test
   public void GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassignedFIFO() {
-    log.info("BEGIN GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassignedFIFO");
+    log.debug("BEGIN GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassignedFIFO");
     CarDTO expectedCar = new CarDTO(randomId(), 6);
     int assignedGroupId = 1;
     int unassignedGroupId1 = 2;
@@ -197,8 +197,8 @@ public class CarPoolingServiceTest {
       .then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId3, 2)))
       .then(carPoolingService.journey(new GroupOfPeopleDTO(unassignedGroupId4, 2)))
       .block();
-    log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
-    log.info("given cars: {}", carPoolingService.cars().collectList().block());
+    log.debug("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+    log.debug("given cars: {}", carPoolingService.cars().collectList().block());
 
     carPoolingService.dropoff(assignedGroupId).subscribe();
 
@@ -214,7 +214,7 @@ public class CarPoolingServiceTest {
     StepVerifier.create(carPoolingService.locateCarOfGroup(unassignedGroupId4)).verifyComplete();
     StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(unassignedGroupId4)).verifyComplete();
 
-    log.info("END GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassignedFIFO");
+    log.debug("END GivenGroupsWaiting_WhenOtherGroupDropoff_AndEnoughAvailableSeats_ThenReassignedFIFO");
   }
 
   private boolean groupReassigned(int unassignedGroupId) {
@@ -229,8 +229,8 @@ public class CarPoolingServiceTest {
   public void GivenGroupWaiting_WhenDropoff_ThenRemovedFromWaitingGroups() {
     GroupOfPeopleDTO group = new GroupOfPeopleDTO(1, 2);
     carPoolingService.journey(group).block();
-    log.info("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
-    log.info("given cars: {}", carPoolingService.cars().collectList().block());
+    log.debug("given waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+    log.debug("given cars: {}", carPoolingService.cars().collectList().block());
 
     Mono<CarEntity> result = carPoolingService.dropoff(group.getId());
 
@@ -240,8 +240,8 @@ public class CarPoolingServiceTest {
   }
 
   private void logCarsAndWaitingGroups() {
-    log.info("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
-    log.info("then cars: {}", carPoolingService.cars().collectList().block());
+    log.debug("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
+    log.debug("then cars: {}", carPoolingService.cars().collectList().block());
   }
 
 }
