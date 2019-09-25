@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.cabify</groupId>
-    <artifactId>car-pooling-reactive</artifactId>
+    <artifactId>carpooling-reactive-mongodb</artifactId>
     <version>0.0.0</version>
-    <name>car-pooling-reactive</name>
-    <description>Car pooling service challenge (reactive version)</description>
+    <name>carpooling-reactive-mongodb</name>
+    <description>Car pooling service challenge (reactive version with mongodb)</description>
 
     <properties>
         <java.version>11</java.version>
