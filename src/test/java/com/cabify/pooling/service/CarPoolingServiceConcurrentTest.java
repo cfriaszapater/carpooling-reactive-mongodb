@@ -77,10 +77,11 @@ public class CarPoolingServiceConcurrentTest {
 
 	private void logCarsAndWaitingGroups() {
 		List<GroupOfPeopleEntity> waitingGroups = carPoolingService.waitingGroups().collectList().block();
-		log.info("waitingGroups ({}): {}", waitingGroups.size(), waitingGroups);
+		log.info("waitingGroups ({}): {}", waitingGroups != null ? waitingGroups.size() : 0, waitingGroups);
 		List<CarEntity> cars = carPoolingService.cars().collectList().block();
+		assert cars != null;
 		Optional<Integer> assignedGroups = cars.stream().map(car -> car.getGroups().size()).reduce(Integer::sum);
-		log.info("cars ({} with {} assigned groups): {}", cars.size(), assignedGroups.isPresent() ? assignedGroups.get() : 0, cars);
+		log.info("cars ({} with {} assigned groups): {}", cars.size(), assignedGroups.orElse(0), cars);
 	}
 
 	@Test
@@ -168,9 +169,10 @@ public class CarPoolingServiceConcurrentTest {
 			log.info("createdGroups ({}) = {}", createdGroups.size(), createdGroups);
 			List<GroupOfPeopleEntity> assignedGroups = carPoolingService.cars()
 					.flatMap(car -> Flux.fromIterable(car.getGroups())).collectList().block();
-			log.info("assignedGroups ({}) = {}", assignedGroups.size(), assignedGroups);
+			log.info("assignedGroups ({}) = {}", assignedGroups != null ? assignedGroups.size() : 0, assignedGroups);
 			logCarsAndWaitingGroups();
 
+			assert assignedGroups != null;
 			List<CarEntity> droppedCars = concurrentPostDropoff(assignedGroups);
 			log.info("droppedCars ({}) = {}", droppedCars.size(), droppedCars);
 

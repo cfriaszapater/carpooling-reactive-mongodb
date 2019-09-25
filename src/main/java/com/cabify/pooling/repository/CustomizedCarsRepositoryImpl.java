@@ -105,7 +105,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 		// Thread-safety: optimistic locking with transaction, does rollback in case of failure
 
 		return firstWaitingGroup()
-				.flatMapMany(waitingGroup -> reassign(waitingGroup))
+				.flatMapMany(this::reassign)
 				// retry failed optimistic concurrent executions of reassignOneWaitingGroup
 				.retryBackoff(3, Duration.ofMillis(200))
 				;
