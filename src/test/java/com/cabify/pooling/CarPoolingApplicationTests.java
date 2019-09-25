@@ -37,10 +37,6 @@ public class CarPoolingApplicationTests {
   }
 
   @Test
-  public void contextLoads() {
-  }
-
-  @Test
   public void WhenGetStatus_ThenOk() {
     ResponseSpec result = webClient.get().uri("http://localhost/status").exchange();
     result.expectStatus().isOk();

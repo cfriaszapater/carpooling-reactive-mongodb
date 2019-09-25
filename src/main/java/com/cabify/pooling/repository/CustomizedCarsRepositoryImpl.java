@@ -25,6 +25,7 @@ import static org.springframework.data.mongodb.core.query.Query.query;
 public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
   private static final String SEATS_AVAILABLE = "seatsAvailable";
+  private static final String GROUPS = "groups";
 
   private final @NonNull ReactiveMongoOperations mongoOperations;
 
@@ -33,7 +34,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
     int people = group.getPeople();
     Update update = new Update()
       .inc(SEATS_AVAILABLE, -people)
-      .addToSet("groups").value(group);
+      .addToSet(GROUPS).value(group);
     return mongoOperations.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
   }
 
@@ -63,7 +64,7 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
   @Override
   public Mono<CarEntity> putInWaitingQueue(GroupOfPeopleEntity group) {
-    Update update = new Update().addToSet("groups").value(group);
+    Update update = new Update().addToSet(GROUPS).value(group);
     return mongoOperations.findAndModify(queryWaitingGroups(), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
   }
 
@@ -115,8 +116,8 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
     int people = waitingGroup.getPeople();
     Update update = new Update()
       .inc(SEATS_AVAILABLE, -people)
-      .addToSet("groups").value(waitingGroup);
-    Update remove = new Update().pull("groups", waitingGroup);
+      .addToSet(GROUPS).value(waitingGroup);
+    Update remove = new Update().pull(GROUPS, waitingGroup);
     return mongoOperations.inTransaction()
       .execute(action ->
         action.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class)
@@ -131,8 +132,8 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
     Mono<GroupOfPeopleEntity> groupToRemove = findGroupById(groupId);
 
     return groupToRemove.flatMap(group -> {
-      Update leaveWaitingQueue = new Update().pull("groups", group);
-      Update leaveCar = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull("groups", group);
+      Update leaveWaitingQueue = new Update().pull(GROUPS, group);
+      Update leaveCar = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull(GROUPS, group);
       return mongoOperations.findAndModify(queryWaitingGroup(groupId), leaveWaitingQueue, new FindAndModifyOptions().returnNew(true), CarEntity.class)
         .switchIfEmpty(
           mongoOperations.findAndModify(queryByGroupId(groupId), leaveCar, new FindAndModifyOptions().returnNew(true), CarEntity.class)
