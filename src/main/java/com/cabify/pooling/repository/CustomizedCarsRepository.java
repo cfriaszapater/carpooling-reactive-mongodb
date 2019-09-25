@@ -20,7 +20,7 @@ public interface CustomizedCarsRepository {
 
 	Flux<CarEntity> findAllNotWaiting();
 
-	Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity group);
+	Flux<GroupOfPeopleEntity> reassignOneWaitingGroup();
 
 	Mono<CarEntity> dropoff(Integer groupId);
 }

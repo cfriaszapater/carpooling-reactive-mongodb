@@ -13,6 +13,8 @@ import org.springframework.data.mongodb.core.query.Update;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
+
 import static com.cabify.pooling.repository.CarsRepository.WAITING_GROUPS;
 import static org.springframework.data.domain.Sort.Order.asc;
 import static org.springframework.data.domain.Sort.by;
@@ -88,20 +90,32 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 				.flatMapMany(car -> Flux.fromIterable(car.getGroups()));
 	}
 
+	private Mono<GroupOfPeopleEntity> firstWaitingGroup() {
+		return mongoOperations.findOne(queryWaitingGroups(), CarEntity.class)
+				.flatMap(car -> Mono.justOrEmpty(car.getGroups().stream().findFirst()));
+	}
+
 	@Override
 	public Flux<CarEntity> findAllNotWaiting() {
 		return mongoOperations.find(query(Criteria.where("id").ne(WAITING_GROUPS)), CarEntity.class);
 	}
 
 	@Override
-	public Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity waitingGroup) {
+	public Flux<GroupOfPeopleEntity> reassignOneWaitingGroup() {
 		// Thread-safety: optimistic locking with transaction, does rollback in case of failure
 
+		return firstWaitingGroup()
+				.flatMapMany(waitingGroup -> reassign(waitingGroup))
+				// retry failed optimistic concurrent executions of reassignOneWaitingGroup
+				.retryBackoff(3, Duration.ofMillis(200))
+				;
+	}
+
+	private Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity waitingGroup) {
 		int people = waitingGroup.getPeople();
 		Update update = new Update()
 				.inc(SEATS_AVAILABLE, -people)
 				.addToSet("groups").value(waitingGroup);
-
 		Update remove = new Update().pull("groups", waitingGroup);
 		return mongoOperations.inTransaction()
 				.execute(action ->

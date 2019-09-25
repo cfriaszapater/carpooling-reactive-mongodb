@@ -36,7 +36,7 @@ public class CarPoolingService {
 	}
 
 	/**
-	 * @return car if dropped off (group was assigned to car), empty otherwise.
+	 * @return car if group was assigned, CarsRepository.WAITING_GROUPS if was waiting, empty if group was not assigned nor waiting.
 	 */
 	public Mono<CarEntity> dropoff(Integer groupId) {
 		Mono<CarEntity> droppedOff = carsRepository.dropoff(groupId);
@@ -48,10 +48,11 @@ public class CarPoolingService {
 	private void reAssignWaitingGroups() {
 		// Thread-safety: see carsRepository.reassign()
 
+		// Reassign as many as waiting groups at the moment (run reassignOneWaitingGroup n times)
 		carsRepository.findAllGroupsWaiting()
-				// concatMap to preserve order
-				.concatMap(carsRepository::reassign)
-				.subscribe(g -> log.debug("reassigned group {}", g), err -> log.debug(err.getMessage(), err));
+				// concatMap to do only one reassignOneWaitingGroup at a time
+				.concatMap(g -> carsRepository.reassignOneWaitingGroup())
+				.subscribe(g -> log.debug("reassigned group {}", g), err -> log.info(err.getMessage()));
 	}
 
 	/**
