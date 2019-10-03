@@ -133,7 +133,7 @@ public class CarPoolingServiceConcurrentTest {
           startGate.await();
 
           CarEntity dropped = carPoolingService.dropoff(groupId).block();
-          if (dropped != null && !CarsRepository.WAITING_GROUPS.equals(dropped.getId())) {
+          if (dropped != null && !CarsRepository.WAITING_QUEUE.equals(dropped.getId())) {
             droppedCars.add(dropped);
           }
 

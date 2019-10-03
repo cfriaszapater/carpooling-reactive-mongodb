@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 import javax.validation.Valid;
 import java.util.List;
 
-import static bs.carpooling.repository.CarsRepository.WAITING_GROUPS;
+import static bs.carpooling.repository.CarsRepository.WAITING_QUEUE;
 
 @RestController
 @RequiredArgsConstructor
@@ -45,7 +45,7 @@ public class CarPoolingController {
 
     return carPoolingService.dropoff(id)
       .map(car -> {
-        if (!WAITING_GROUPS.equals(car.getId())) {
+        if (!WAITING_QUEUE.equals(car.getId())) {
           return new ResponseEntity<Void>(HttpStatus.OK);
         } else {
           return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);

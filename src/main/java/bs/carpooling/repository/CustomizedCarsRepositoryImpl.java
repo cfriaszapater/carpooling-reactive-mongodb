@@ -15,7 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Duration;
 
-import static bs.carpooling.repository.CarsRepository.WAITING_GROUPS;
+import static bs.carpooling.repository.CarsRepository.WAITING_QUEUE;
 import static org.springframework.data.domain.Sort.Order.asc;
 import static org.springframework.data.domain.Sort.by;
 import static org.springframework.data.mongodb.core.query.Query.query;
@@ -31,15 +31,22 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
   @Override
   public Mono<CarEntity> assignToCarWithAvailableSeats(GroupOfPeopleEntity group) {
-    int people = group.getPeople();
-    Update update = new Update()
-      .inc(SEATS_AVAILABLE, -people)
-      .addToSet(GROUPS).value(group);
-    return mongoOperations.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+    return groupEntersCarWithSeatsAvailable(group, mongoOperations);
   }
 
-  private Query queryBySeatsAvailable(int people) {
+  private Mono<CarEntity> groupEntersCarWithSeatsAvailable(GroupOfPeopleEntity group, ReactiveMongoOperations action) {
+    return action
+      .findAndModify(carWithSeatsAvailable(group.getPeople()), enterCar(group), new FindAndModifyOptions().returnNew(true), CarEntity.class);
+  }
+
+  private Query carWithSeatsAvailable(int people) {
     return query(Criteria.where(SEATS_AVAILABLE).gte(people)).with(by(asc(SEATS_AVAILABLE)));
+  }
+
+  private Update enterCar(GroupOfPeopleEntity waitingGroup) {
+    return new Update()
+      .inc(SEATS_AVAILABLE, -waitingGroup.getPeople())
+      .addToSet(GROUPS).value(waitingGroup);
   }
 
   @Override
@@ -53,29 +60,29 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
   @Override
   public Mono<CarEntity> locateCarOfGroup(Integer groupId) {
-    return mongoOperations.findOne(queryByGroupId(groupId), CarEntity.class);
+    return mongoOperations.findOne(groupById(groupId), CarEntity.class);
   }
 
-  private Query queryByGroupId(Integer groupId) {
+  private Query groupById(Integer groupId) {
     return query(Criteria
       .where("groups.id").is(groupId)
-      .and("id").ne(WAITING_GROUPS));
+      .and("id").ne(WAITING_QUEUE));
   }
 
   @Override
   public Mono<CarEntity> putInWaitingQueue(GroupOfPeopleEntity group) {
-    Update update = new Update().addToSet(GROUPS).value(group);
-    return mongoOperations.findAndModify(queryWaitingGroups(), update, new FindAndModifyOptions().returnNew(true), CarEntity.class);
+    Update enterWaitingQueue = new Update().addToSet(GROUPS).value(group);
+    return mongoOperations.findAndModify(waitingQueue(), enterWaitingQueue, new FindAndModifyOptions().returnNew(true), CarEntity.class);
   }
 
-  private Query queryWaitingGroups() {
+  private Query waitingQueue() {
     return query(Criteria
-      .where("id").is(WAITING_GROUPS));
+      .where("id").is(WAITING_QUEUE));
   }
 
   @Override
   public Mono<GroupOfPeopleEntity> findWaitingById(Integer groupId) {
-    return waitingGroups()
+    return findWaitingGroups()
       .filter(group -> group.getId().equals(groupId))
       .next()
       ;
@@ -83,17 +90,21 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
 
   @Override
   public Flux<GroupOfPeopleEntity> findAllGroupsWaiting() {
-    return waitingGroups();
+    return findWaitingGroups();
   }
 
-  private Flux<GroupOfPeopleEntity> waitingGroups() {
-    return mongoOperations.findOne(queryWaitingGroups(), CarEntity.class)
+  private Flux<GroupOfPeopleEntity> findWaitingGroups() {
+    return findWaitingQueue()
       .flatMapMany(car -> Flux.fromIterable(car.getGroups()));
+  }
+
+  private Mono<CarEntity> findWaitingQueue() {
+    return mongoOperations.findOne(waitingQueue(), CarEntity.class);
   }
 
   @Override
   public Flux<CarEntity> findAllNotWaiting() {
-    return mongoOperations.find(query(Criteria.where("id").ne(WAITING_GROUPS)), CarEntity.class);
+    return mongoOperations.find(query(Criteria.where("id").ne(WAITING_QUEUE)), CarEntity.class);
   }
 
   @Override
@@ -108,51 +119,62 @@ public class CustomizedCarsRepositoryImpl implements CustomizedCarsRepository {
   }
 
   private Mono<GroupOfPeopleEntity> firstWaitingGroup() {
-    return mongoOperations.findOne(queryWaitingGroups(), CarEntity.class)
+    return findWaitingQueue()
       .flatMap(car -> Mono.justOrEmpty(car.getGroups().stream().findFirst()));
   }
 
   private Flux<GroupOfPeopleEntity> reassign(GroupOfPeopleEntity waitingGroup) {
-    int people = waitingGroup.getPeople();
-    Update update = new Update()
-      .inc(SEATS_AVAILABLE, -people)
-      .addToSet(GROUPS).value(waitingGroup);
-    Update remove = new Update().pull(GROUPS, waitingGroup);
+    // Thread-safety: transaction needed to atomically update two documents (waitingQueue and carWithSeatsAvailable)
+
     return mongoOperations.inTransaction()
-      .execute(action ->
-        action.findAndModify(queryBySeatsAvailable(people), update, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-          .flatMap(car -> action.findAndModify(queryWaitingGroup(waitingGroup.getId()), remove, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-            .switchIfEmpty(Mono.error(new RuntimeException("Waiting group not found on reassigning it, rolling back transaction"))))
-          .flatMap(car -> Mono.just(waitingGroup))
+      .execute(action -> groupEntersCarWithSeatsAvailable(waitingGroup, action)
+        .flatMap(car -> groupLeavesWaitingQueue(waitingGroup, action)
+          .switchIfEmpty(Mono.error(new RuntimeException("Waiting group not found on reassigning it, rolling back transaction"))))
+        .flatMap(car -> Mono.just(waitingGroup))
       );
+  }
+
+  private Mono<CarEntity> groupLeavesWaitingQueue(GroupOfPeopleEntity group, ReactiveMongoOperations action) {
+    return action
+      .findAndModify(waitingGroup(group.getId()), leaveWaitingQueue(group), new FindAndModifyOptions().returnNew(true), CarEntity.class);
+  }
+
+  private Query waitingGroup(Integer waitingGroupId) {
+    return query(Criteria
+      .where("id").is(WAITING_QUEUE)
+      .and("groups.id").is(waitingGroupId));
+  }
+
+  private Update leaveWaitingQueue(GroupOfPeopleEntity waitingGroup) {
+    return new Update().pull(GROUPS, waitingGroup);
   }
 
   @Override
   public Mono<CarEntity> dropoff(Integer groupId) {
     Mono<GroupOfPeopleEntity> groupToRemove = findGroupById(groupId);
 
-    return groupToRemove.flatMap(group -> {
-      Update leaveWaitingQueue = new Update().pull(GROUPS, group);
-      Update leaveCar = new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull(GROUPS, group);
-      return mongoOperations.findAndModify(queryWaitingGroup(groupId), leaveWaitingQueue, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-        .switchIfEmpty(
-          mongoOperations.findAndModify(queryByGroupId(groupId), leaveCar, new FindAndModifyOptions().returnNew(true), CarEntity.class)
-        );
-    });
-  }
-
-  private Query queryWaitingGroup(Integer waitingGroupId) {
-    return query(Criteria
-      .where("id").is(WAITING_GROUPS)
-      .and("groups.id").is(waitingGroupId));
+    return groupToRemove
+      .flatMap(group ->
+        groupLeavesWaitingQueue(group, mongoOperations)
+          .switchIfEmpty(groupLeavesCar(group))
+      );
   }
 
   private Mono<GroupOfPeopleEntity> findGroupById(Integer groupId) {
-    return waitingGroups()
+    return findWaitingGroups()
       .filter(group -> group.getId().equals(groupId))
       .next()
       .switchIfEmpty(locateGroupById(groupId))
       ;
+  }
+
+  private Mono<CarEntity> groupLeavesCar(GroupOfPeopleEntity group) {
+    return mongoOperations
+      .findAndModify(groupById(group.getId()), leaveCar(group), new FindAndModifyOptions().returnNew(true), CarEntity.class);
+  }
+
+  private Update leaveCar(GroupOfPeopleEntity group) {
+    return new Update().inc(SEATS_AVAILABLE, group.getPeople()).pull(GROUPS, group);
   }
 
 }

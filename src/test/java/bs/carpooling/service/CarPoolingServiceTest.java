@@ -88,7 +88,7 @@ public class CarPoolingServiceTest {
     GroupOfPeopleDTO requestedGroup = new GroupOfPeopleDTO(2, 2);
     Mono<CarEntity> result = carPoolingService.journey(requestedGroup);
 
-    StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_GROUPS)).verifyComplete();
+    StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_QUEUE)).verifyComplete();
     StepVerifier.create(carPoolingService.waitingGroups()).expectNextMatches(g -> g.getId().equals(requestedGroup.getId())).verifyComplete();
   }
 
@@ -150,7 +150,7 @@ public class CarPoolingServiceTest {
 
     Mono<CarEntity> result = given.then(carPoolingService.dropoff(group.getId()));
 
-    StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_GROUPS)).verifyComplete();
+    StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_QUEUE)).verifyComplete();
   }
 
   @Test
@@ -242,7 +242,7 @@ public class CarPoolingServiceTest {
 
     Mono<CarEntity> result = carPoolingService.dropoff(group.getId());
 
-    StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_GROUPS)).verifyComplete();
+    StepVerifier.create(result).expectNextMatches(car -> car.getId().equals(CarsRepository.WAITING_QUEUE)).verifyComplete();
     logCarsAndWaitingGroups();
     StepVerifier.create(carPoolingService.waitingGroups()).verifyComplete();
   }
