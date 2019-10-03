@@ -11,6 +11,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.data.mongodb.core.ReactiveMongoOperations;
 import org.springframework.test.context.junit4.SpringRunner;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Hooks;
@@ -23,6 +25,8 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+import static org.springframework.data.mongodb.core.query.Query.query;
 
 @DataMongoTest
 @RunWith(SpringRunner.class)
@@ -33,6 +37,10 @@ public class CarPoolingServiceTest {
   private CarsRepository carsRepository;
 
   private CarPoolingService carPoolingService;
+
+  @Autowired
+  private ReactiveMongoOperations mongoOperations;
+
 
   @Before
   public void before() {
@@ -242,6 +250,18 @@ public class CarPoolingServiceTest {
   private void logCarsAndWaitingGroups() {
     log.debug("then waitingGroups: {}", carPoolingService.waitingGroups().collectList().block());
     log.debug("then cars: {}", carPoolingService.cars().collectList().block());
+  }
+
+  @Test(expected = OptimisticLockingFailureException.class)
+  public void GivenCar_WhenModifiedConcurrently_ThenException() {
+    CarEntity car = mongoOperations.insert(CarEntity.builder().id(13).seatsAvailable(6).build()).block();
+
+    CarEntity tmp = mongoOperations.findOne(query(where("id").is(car.getId())), CarEntity.class).block();
+
+    car.setSeatsAvailable(0);
+    mongoOperations.save(car).block();
+
+    mongoOperations.save(tmp).block(); // throws OptimisticLockingFailureException
   }
 
 }
